@@ -49,7 +49,7 @@ export default function AdminPunchModal({ employee, open, onClose, onSuccess }) 
           <select
             value={type}
             onChange={(e) => setType(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
           >
             <option value="auto">Auto-detect (recommended)</option>
             <option value="in">In</option>
@@ -64,7 +64,7 @@ export default function AdminPunchModal({ employee, open, onClose, onSuccess }) 
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="e.g. No phone access"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
           />
         </div>
 

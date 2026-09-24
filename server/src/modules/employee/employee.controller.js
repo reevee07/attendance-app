@@ -3,7 +3,7 @@ const employeeService = require('./employee.service');
 
 // POST /api/employees  (admin only)
 const createEmployeeController = asyncHandler(async (req, res) => {
-  const employee = await employeeService.createEmployee(req.body);
+  const employee = await employeeService.createEmployee(req.body, req.file);
   res.status(201).json({ success: true, data: employee });
 });
 
@@ -26,7 +26,7 @@ const getEmployeeController = asyncHandler(async (req, res) => {
 
 // PATCH /api/employees/:id  (admin only)
 const updateEmployeeController = asyncHandler(async (req, res) => {
-  const employee = await employeeService.updateEmployee(req.params.id, req.body);
+  const employee = await employeeService.updateEmployee(req.params.id, req.body, req.file);
   res.status(200).json({ success: true, data: employee });
 });
 
