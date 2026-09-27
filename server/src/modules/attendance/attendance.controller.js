@@ -63,10 +63,33 @@ const dailySummaryController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: summary });
 });
 
+// GET /api/attendance/trend?days=7  (admin only)
+const trendController = asyncHandler(async (req, res) => {
+  const days = req.query.days ? parseInt(req.query.days, 10) : 7;
+  const trend = await attendanceService.getPresentTrend(days);
+  res.status(200).json({ success: true, data: trend });
+});
+
+// GET /api/attendance/by-office  (admin only)
+const byOfficeController = asyncHandler(async (req, res) => {
+  const data = await attendanceService.getOfficePresenceToday();
+  res.status(200).json({ success: true, data });
+});
+
+// GET /api/attendance/recent?limit=10  (admin only)
+const recentController = asyncHandler(async (req, res) => {
+  const limit = req.query.limit ? parseInt(req.query.limit, 10) : 10;
+  const recent = await attendanceService.getRecentPunches(limit);
+  res.status(200).json({ success: true, data: recent });
+});
+
 module.exports = {
   selfPunchController,
   adminPunchController,
   myHistoryController,
   employeeHistoryController,
   dailySummaryController,
+  trendController,
+  byOfficeController,
+  recentController,
 };

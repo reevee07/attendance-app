@@ -2,12 +2,14 @@ import React from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/common/Button.jsx';
+import DashboardHome from './DashboardHome.jsx';
 import AttendanceReports from './AttendanceReports.jsx';
 import EmployeeManagement from './EmployeeManagement.jsx';
+import { LOGO_PNG } from '../../config/constants.js';
 
 const navLinkClass = ({ isActive }) =>
-  `rounded-lg px-3 py-2 text-sm font-medium ${
-    isActive ? 'bg-brand-100 text-brand-700' : 'text-gray-600 hover:bg-gray-100'
+  `rounded-full px-3 py-2 text-sm font-medium ${
+    isActive ? 'bg-blue-900 text-white' : 'text-black hover:bg-blue-900 hover:text-white'
   }`;
 
 export default function AdminDashboard() {
@@ -15,30 +17,37 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="border-b border-gray-200 bg-white px-6 py-4">
+      <header className="border-b border-gray-200 bg-gradient-to-b from-blue-400 to-blue-300 px-6 py-3 shadow-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-gray-900">Admin Dashboard</h1>
-            <p className="text-xs text-gray-500">{user.name}</p>
+          <div className="flex items-center gap-3">
+            <img src={LOGO_PNG} alt="Logo" className="h-9 w-auto object-contain" />
+          
           </div>
-          <Button variant="ghost" onClick={logout}>
+
+          <nav className="flex items-center gap-2">
+            <NavLink to="/admin" end className={navLinkClass}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/admin/attendance" className={navLinkClass}>
+              Attendance
+            </NavLink>
+            <NavLink to="/admin/employees" className={navLinkClass}>
+              Employees
+            </NavLink>
+          </nav>
+          
+
+    
+          <Button variant="danger" onClick={logout}>
             Logout
           </Button>
         </div>
       </header>
 
-      <nav className="mx-auto flex max-w-5xl gap-2 px-6 py-4">
-        <NavLink to="/admin" end className={navLinkClass}>
-          Attendance
-        </NavLink>
-        <NavLink to="/admin/employees" className={navLinkClass}>
-          Employees
-        </NavLink>
-      </nav>
-
-      <main className="mx-auto max-w-5xl px-6 pb-10">
+      <main className="mx-auto max-w-5xl px-6 pt-8 pb-10">
         <Routes>
-          <Route index element={<AttendanceReports />} />
+          <Route index element={<DashboardHome />} />
+          <Route path="attendance" element={<AttendanceReports />} />
           <Route path="employees" element={<EmployeeManagement />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

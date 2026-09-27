@@ -5,8 +5,9 @@ import Modal from '../../components/common/Modal.jsx';
 import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import * as employeeService from '../../services/employeeService';
+import * as officeService from '../../services/officeService';
 
-const emptyForm = { name: '', email: '', password: '', employeeCode: '', designation: '', contactNumber: '', role: 'user' };
+const emptyForm = { name: '', email: '', password: '', employeeCode: '', designation: '', contactNumber: '', role: 'user', officeId: '' };
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
@@ -18,6 +19,9 @@ export default function EmployeeManagement() {
   const [photoPreview, setPhotoPreview] = useState(null);
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [offices, setOffices] = useState([]);
+  const [newOfficeName, setNewOfficeName] = useState('');
+  const [addingOffice, setAddingOffice] = useState(false);
 
   async function loadEmployees() {
     setLoading(true);
@@ -29,9 +33,16 @@ export default function EmployeeManagement() {
     }
   }
 
+  async function loadOffices() {
+  const data = await officeService.listOffices();
+  setOffices(data);
+ }
+
   useEffect(() => {
-    loadEmployees();
+  loadEmployees();
+  loadOffices();
   }, []);
+ 
 
   function resetPhotoState() {
     setPhotoFile(null);
@@ -46,21 +57,22 @@ export default function EmployeeManagement() {
   }
 
   function openEditForm(employee) {
-    setForm({
-      _id: employee._id,
-      name: employee.name,
-      email: employee.email,
-      employeeCode: employee.employeeCode || '',
-      role: employee.role,
-      password: '',
-      designation: employee.designation || '',
-      contactNumber: employee.contactNumber || '',
-    });
-    setPhotoFile(null);
-    setPhotoPreview(employee.photoUrl || null);
-    setFormError(null);
-    setFormOpen(true);
-  }
+  setForm({
+    _id: employee._id,
+    name: employee.name,
+    email: employee.email,
+    employeeCode: employee.employeeCode || '',
+    designation: employee.designation || '',
+    contactNumber: employee.contactNumber || '',
+    role: employee.role,
+    officeId: employee.officeId?._id || employee.officeId || '',
+    password: '',
+  });
+  setPhotoFile(null);
+  setPhotoPreview(employee.photoUrl || null);
+  setFormError(null);
+  setFormOpen(true);
+}
 
   function handlePhotoChange(e) {
     const file = e.target.files?.[0];
@@ -69,15 +81,28 @@ export default function EmployeeManagement() {
     setPhotoPreview(URL.createObjectURL(file));
   }
 
+  async function handleAddOffice() {
+  if (!newOfficeName.trim()) return;
+  setAddingOffice(true);
+  try {
+    const office = await officeService.createOffice({ name: newOfficeName.trim() });
+    setOffices((prev) => [...prev, office]);
+    setForm((prev) => ({ ...prev, officeId: office._id }));
+    setNewOfficeName('');
+  } finally {
+    setAddingOffice(false);
+  }
+}
+
   async function handleFormSubmit(e) {
     e.preventDefault();
     setSubmitting(true);
     setFormError(null);
     try {
       if (form._id) {
-        const { password, _id, ...updates } = form;
-        await employeeService.updateEmployee(_id, updates, photoFile);
-      } else {
+  const { _id, ...updates } = form;
+  await employeeService.updateEmployee(_id, updates, photoFile);
+} else {
         await employeeService.createEmployee(form, photoFile);
       }
       setFormOpen(false);
@@ -92,8 +117,7 @@ export default function EmployeeManagement() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Employees</h2>
+      <div className="mb-2 mt-20 flex items-center justify-between">
         <Button onClick={openCreateForm}>Add Employee</Button>
       </div>
 
@@ -150,16 +174,14 @@ export default function EmployeeManagement() {
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
-          {!form._id && (
-            <input
-              required
-              type="password"
-              placeholder="Temporary password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-            />
-          )}
+          <input
+  required={!form._id}
+  type="password"
+  placeholder={form._id ? 'New password (leave blank to keep current)' : 'Temporary password'}
+  value={form.password}
+  onChange={(e) => setForm({ ...form, password: e.target.value })}
+  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+/>
           <input
             required
             placeholder="Employee code"
@@ -179,6 +201,36 @@ export default function EmployeeManagement() {
             onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
+          <div>
+  <select
+    value={form.officeId}
+    onChange={(e) => setForm({ ...form, officeId: e.target.value })}
+    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+  >
+    <option value="">No office assigned</option>
+    {offices.map((office) => (
+      <option key={office._id} value={office._id}>
+        {office.name}
+      </option>
+    ))}
+  </select>
+  <div className="mt-2 flex gap-2">
+    <input
+      placeholder="New office name (e.g. Kelax)"
+      value={newOfficeName}
+      onChange={(e) => setNewOfficeName(e.target.value)}
+      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+    />
+    <Button
+      type="button"
+      variant="secondary"
+      loading={addingOffice}
+      onClick={handleAddOffice}
+    >
+      Add
+    </Button>
+  </div>
+</div>
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}

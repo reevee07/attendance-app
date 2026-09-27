@@ -35,7 +35,7 @@ export default function AttendanceReports() {
           value={date}
           max={todayISO()}
           onChange={(e) => setDate(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+          className="rounded-full border border-black bg-gray-100 px-3 py-1.5 text-sm"
         />
       </div>
 

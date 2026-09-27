@@ -31,3 +31,18 @@ export async function dailySummary(date) {
   const { data } = await api.get('/attendance/summary', { params: { date } });
   return data.data;
 }
+
+export async function trend(days = 7) {
+  const { data } = await api.get('/attendance/trend', { params: { days } });
+  return data.data;
+}
+
+export async function byOffice() {
+  const { data } = await api.get('/attendance/by-office');
+  return data.data;
+}
+
+export async function recent(limit = 10) {
+  const { data } = await api.get('/attendance/recent', { params: { limit } });
+  return data.data;
+}

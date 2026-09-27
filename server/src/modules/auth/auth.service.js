@@ -28,6 +28,7 @@ async function login(email, password) {
       email: employee.email,
       role: employee.role,
       officeId: employee.officeId,
+      photoUrl: employee.photoUrl,
     },
   };
 }

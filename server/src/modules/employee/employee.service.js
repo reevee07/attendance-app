@@ -18,7 +18,7 @@ async function uploadEmployeePhoto(employeeId, fileBuffer, mimeType) {
 }
 
 async function createEmployee(data, photoFile) {
-  const { name, email, password, role, employeeCode, designation, contactNumber, officeId } = data;
+  const { name, email, password, role, employeeCode, designation, contactNumber, company, officeId } = data;
 
   const existing = await Employee.findOne({ email: email.toLowerCase().trim() });
   if (existing) throw new Error('An employee with this email already exists');
@@ -33,6 +33,7 @@ async function createEmployee(data, photoFile) {
     employeeCode,
     designation,
     contactNumber,
+    company,
     officeId,
   });
 
@@ -55,13 +56,18 @@ async function getEmployeeById(id) {
 }
 
 async function updateEmployee(id, updates, photoFile) {
-  delete updates.passwordHash;
-  delete updates.password;
+  delete updates.passwordHash; // never allow this to be set directly, bypassing hashing
+
+  if (updates.password && updates.password.trim()) {
+    updates.passwordHash = await bcrypt.hash(updates.password, 10);
+  }
+  delete updates.password; // never save the plain-text value, hashed or not
 
   if (photoFile) {
     updates.photoUrl = await uploadEmployeePhoto(id, photoFile.buffer, photoFile.mimetype);
   }
 
+  
   const employee = await Employee.findByIdAndUpdate(id, updates, {
     new: true,
     runValidators: true,

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/common/Button.jsx';
+import { LOGO_PNG, LOGIN_BG } from '../../config/constants.js';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -26,10 +27,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 text-xl font-semibold text-gray-900">Attendance App</h1>
-        <p className="mb-6 text-sm text-gray-500">Sign in to continue</p>
+    <div
+      className="flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: `url(${LOGIN_BG})` }}
+    >
+      <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-blue-100/90 p-8 shadow-lg backdrop-blur-sm">
+        <div className="mb-5 flex items-center justify-center gap-4">
+          <img src={LOGO_PNG} alt="Logo" className="h-9 w-auto object-contain" />
+          <h1 className="mb-1 mt-1 text-xl font-bold text-gray-900">HRS</h1>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

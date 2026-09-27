@@ -6,6 +6,9 @@ const {
   myHistoryController,
   employeeHistoryController,
   dailySummaryController,
+  trendController,
+  byOfficeController,
+  recentController,
 } = require('./attendance.controller');
 const { requireAuth, requireRole } = require('../../middlewares/auth.middleware');
 
@@ -25,5 +28,8 @@ router.post('/admin-punch', requireRole('admin'), adminPunchController);
 router.get('/me', myHistoryController);
 router.get('/employee/:id', requireRole('admin'), employeeHistoryController);
 router.get('/summary', requireRole('admin'), dailySummaryController);
+router.get('/trend', requireRole('admin'), trendController);
+router.get('/by-office', requireRole('admin'), byOfficeController);
+router.get('/recent', requireRole('admin'), recentController);
 
 module.exports = router;

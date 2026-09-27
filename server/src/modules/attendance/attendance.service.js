@@ -166,10 +166,95 @@ async function getDailySummary(dateStr) {
   return summary;
 }
 
+/**
+ * Distinct employees present (had a punch) per day, for the last `days` days.
+ * Used to plot the admin's attendance trend graph.
+ */
+async function getPresentTrend(days = 7) {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  const start = new Date();
+  start.setDate(start.getDate() - (days - 1));
+  start.setHours(0, 0, 0, 0);
+
+  const rows = await Attendance.aggregate([
+    { $match: { timestamp: { $gte: start, $lte: end } } },
+    {
+      $group: {
+        _id: {
+          date: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
+          employeeId: '$employeeId',
+        },
+      },
+    },
+    { $group: { _id: '$_id.date', count: { $sum: 1 } } },
+    { $sort: { _id: 1 } },
+    { $project: { date: '$_id', count: 1, _id: 0 } },
+  ]);
+
+  // Fill in any missing days with 0 so the graph doesn't have gaps
+  const byDate = Object.fromEntries(rows.map((r) => [r.date, r.count]));
+  const result = [];
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    result.push({ date: key, count: byDate[key] || 0 });
+  }
+  return result;
+}
+
+/**
+ * Distinct employees present today, grouped by their assigned office.
+ * Powers the per-office "live ring" counts on the admin dashboard.
+ */
+async function getOfficePresenceToday() {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date();
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const presentToday = await Attendance.distinct('employeeId', {
+    timestamp: { $gte: startOfDay, $lte: endOfDay },
+  });
+
+  const offices = await Office.find();
+  const employees = await Employee.find({ officeId: { $ne: null } }).select('officeId');
+
+  const presentSet = new Set(presentToday.map((id) => id.toString()));
+
+  return offices.map((office) => {
+    const officeEmployeeIds = employees
+      .filter((e) => e.officeId?.toString() === office._id.toString())
+      .map((e) => e._id.toString());
+    const presentCount = officeEmployeeIds.filter((id) => presentSet.has(id)).length;
+    return {
+      officeId: office._id,
+      officeName: office.name,
+      totalEmployees: officeEmployeeIds.length,
+      presentToday: presentCount,
+    };
+  });
+}
+
+/**
+ * Most recent punches across ALL employees, newest first - for the
+ * admin dashboard's live "Attendance Punch History" feed.
+ */
+async function getRecentPunches(limit = 10) {
+  return Attendance.find()
+    .sort({ timestamp: -1 })
+    .limit(limit)
+    .populate('employeeId', 'name');
+}
+
 module.exports = {
   determineNextType,
   selfPunch,
   adminPunch,
   getEmployeeHistory,
   getDailySummary,
+  getPresentTrend,
+  getOfficePresenceToday,
+  getRecentPunches,
 };

@@ -10,6 +10,7 @@ const employeeSchema = new mongoose.Schema(
     employeeCode: { type: String, unique: true, sparse: true },
     designation: { type: String, trim: true },
     contactNumber: { type: String, trim: true },
+    company: { type: String, trim: true },
     officeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Office' },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
   },

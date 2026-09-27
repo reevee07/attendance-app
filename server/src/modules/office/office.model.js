@@ -4,8 +4,8 @@ const officeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     address: { type: String, trim: true },
-    latitude: { type: Number, required: true },
-    longitude: { type: Number, required: true },
+    latitude: { type: Number, default: 0 },
+    longitude: { type: Number, default: 0 },
     // Kept for reference/analytics only - no enforcement happens against this.
     radiusMeters: { type: Number, default: 200 },
   },
