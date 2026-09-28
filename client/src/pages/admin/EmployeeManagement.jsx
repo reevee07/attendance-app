@@ -6,6 +6,7 @@ import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import * as employeeService from '../../services/employeeService';
 import * as officeService from '../../services/officeService';
+import { UserPlus } from 'lucide-react';
 
 const emptyForm = { name: '', email: '', password: '', employeeCode: '', designation: '', contactNumber: '', role: 'user', officeId: '' };
 
@@ -118,7 +119,9 @@ export default function EmployeeManagement() {
   return (
     <div>
       <div className="mb-2 mt-20 flex items-center justify-between">
-        <Button onClick={openCreateForm}>Add Employee</Button>
+
+        
+        <Button onClick={openCreateForm}><UserPlus size={18} />Add Employee</Button>
       </div>
 
       {loading ? (
