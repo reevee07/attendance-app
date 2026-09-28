@@ -6,9 +6,10 @@ import DashboardHome from './DashboardHome.jsx';
 import AttendanceReports from './AttendanceReports.jsx';
 import EmployeeManagement from './EmployeeManagement.jsx';
 import { LOGO_PNG } from '../../config/constants.js';
+import { LayoutDashboard, Users, Briefcase, LogOut } from 'lucide-react';
 
 const navLinkClass = ({ isActive }) =>
-  `rounded-full px-3 py-2 text-sm font-medium ${
+  `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium ${
     isActive ? 'bg-blue-900 text-white' : 'text-black hover:bg-blue-900 hover:text-white'
   }`;
 
@@ -16,7 +17,7 @@ export default function AdminDashboard() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-200">
       <header className="border-b border-gray-200 bg-gradient-to-b from-blue-400 to-blue-300 px-6 py-3 shadow-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
@@ -26,12 +27,15 @@ export default function AdminDashboard() {
 
           <nav className="flex items-center gap-2">
             <NavLink to="/admin" end className={navLinkClass}>
+            <LayoutDashboard size={18} />
               Dashboard
             </NavLink>
             <NavLink to="/admin/attendance" className={navLinkClass}>
+            <Users size={18} />
               Attendance
             </NavLink>
             <NavLink to="/admin/employees" className={navLinkClass}>
+            <Briefcase size={18} />
               Employees
             </NavLink>
           </nav>
@@ -39,6 +43,7 @@ export default function AdminDashboard() {
 
     
           <Button variant="danger" onClick={logout}>
+            <LogOut size={18} />
             Logout
           </Button>
         </div>

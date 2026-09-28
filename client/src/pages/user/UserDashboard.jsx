@@ -72,7 +72,7 @@ export default function UserDashboard() {
       render: (row) => (
         <span
           className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-            row.type === 'in' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-700'
+            row.type === 'in' ? 'bg-green-200 text-green-800' : 'bg-red-400 text-red-900'
           }`}
         >
           {row.type.toUpperCase()}
@@ -102,7 +102,7 @@ export default function UserDashboard() {
               <h1 className="text-lg font-semibold text-gray-900">{user.name}</h1>
             </div>
           </div>
-          <Button variant="ghost" onClick={logout}>
+          <Button variant="danger" onClick={logout}>
             Logout
           </Button>
         </div>
@@ -112,12 +112,12 @@ export default function UserDashboard() {
 </div>
 
 <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
-  <h2 className="mb-2 text-sm font-semibold text-gray-900">Request Leave for Tomorrow</h2>
+  <h2 className="mb-2 text-sm font-semibold text-gray-900">Request Leave</h2>
   <input
-    placeholder="Reason (optional)"
+    placeholder="Reason"
     value={leaveReason}
     onChange={(e) => setLeaveReason(e.target.value)}
-    className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+    className="mb-2 w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
   />
   <Button variant="secondary" loading={requestingLeave} onClick={handleRequestLeave} className="w-full">
     Request Leave

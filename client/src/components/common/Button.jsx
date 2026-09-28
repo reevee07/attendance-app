@@ -3,7 +3,7 @@ import React from 'react';
 const variants = {
   primary: 'bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md',
   secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-800',
-  danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm hover:shadow-md',
+  danger: 'bg-red-300 hover:bg-red-700 hover:text-white text-red-700 shadow-sm hover:shadow-md',
   ghost: 'bg-red-700 hover:bg-gray-100 text-gray-700',
 };
 
