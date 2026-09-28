@@ -32,11 +32,11 @@ export default function AttendanceTable({ data }) {
       header: 'Source',
       render: (row) =>
         row.hasAdminEntry ? (
-          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
+          <span className="inline-flex items-center rounded-full bg-amber-300 px-2.5 py-0.5 text-xs font-medium text-amber-800">
             Admin Entry
           </span>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+          <span className="inline-flex items-center rounded-full bg-green-300 px-2.5 py-0.5 text-xs font-medium text-green-800">
             Self Punch
           </span>
         ),

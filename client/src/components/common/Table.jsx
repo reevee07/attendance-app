@@ -11,7 +11,7 @@ export default function Table({ columns, data, emptyLabel = 'No records found' }
   return (
     <div className="overflow-x-auto rounded-lg border border-gray-200">
       <table className="min-w-full divide-y divide-gray-200 text-sm">
-        <thead className="bg-gray-50">
+        <thead className="bg-gray-300">
           <tr>
             {columns.map((col) => (
               <th
@@ -23,7 +23,7 @@ export default function Table({ columns, data, emptyLabel = 'No records found' }
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className="divide-y divide-gray-100 bg-blue-100">
           {data.map((row, idx) => (
             <tr key={row._id || row.id || idx} className="hover:bg-gray-50">
               {columns.map((col) => (

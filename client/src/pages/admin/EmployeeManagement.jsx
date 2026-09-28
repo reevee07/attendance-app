@@ -118,7 +118,7 @@ export default function EmployeeManagement() {
 
   return (
   
-    <div className="min-h-screen bg-blue-950">
+    <div>
       <div className="mb-2 mt-20 flex items-center justify-between">
 
         

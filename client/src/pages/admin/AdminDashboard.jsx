@@ -17,7 +17,7 @@ export default function AdminDashboard() {
   const { user, logout } = useAuth();
 
   return (
-    <div className="min-h-screen bg-blue-950">
+    <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-gradient-to-b from-blue-400 to-blue-300 px-6 py-3 shadow-md">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <div className="flex items-center gap-3">
