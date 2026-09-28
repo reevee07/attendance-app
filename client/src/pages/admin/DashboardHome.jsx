@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import LiveRing from '../../components/admin/LiveRing.jsx';
+import { UserCheck, CalendarX, Users, Building2 } from 'lucide-react';
+import StatCard from '../../components/admin/StatCard.jsx';
 import NotificationPanel from '../../components/admin/NotificationPanel.jsx';
 import PunchHistoryPanel from '../../components/admin/PunchHistoryPanel.jsx';
 import Loader from '../../components/common/Loader.jsx';
@@ -8,7 +9,7 @@ import * as attendanceService from '../../services/attendanceService';
 import * as employeeService from '../../services/employeeService';
 import * as leaveService from '../../services/leaveService';
 
-const OFFICE_COLORS = ['#2f4bc4', '#0891b2', '#7c3aed'];
+const OFFICE_THEMES = ['purple', 'cyan', 'pink'];
 
 export default function DashboardHome() {
   const [officeStats, setOfficeStats] = useState([]);
@@ -45,20 +46,27 @@ export default function DashboardHome() {
 
   if (loading) return <Loader />;
 
-  // Top row 1: Present / On Leave / Total. Top row 2: one ring per office (up to 3 shown here).
-  const topRingsRow1 = [
-    { label: 'Present Employee', value: presentToday, total: totalEmployees, color: '#16a34a' },
-    { label: 'On Leave Employee', value: onLeaveToday, total: totalEmployees, color: '#dc2626' },
-    { label: 'Total Employee', value: totalEmployees, total: totalEmployees, color: '#4b5563' },
+  const statCards = [
+    { label: 'Present Employee', value: presentToday, total: totalEmployees, theme: 'green', icon: UserCheck },
+    { label: 'On Leave Employee', value: onLeaveToday, total: totalEmployees, theme: 'orange', icon: CalendarX },
+    { label: 'Total Employee', value: totalEmployees, total: totalEmployees, theme: 'blue', icon: Users },
+    ...officeStats.slice(0, 3).map((office, i) => ({
+      label: office.officeName,
+      value: office.presentToday,
+      total: office.totalEmployees,
+      theme: OFFICE_THEMES[i],
+      icon: Building2,
+    })),
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-      {/* Top-left: bar graph */}
-      <div className="rounded-2xl border border-gray-200 bg-blue-200 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-gray-900">Attendance Trend</h2>
-        <div style={{ width: '100%', height: 240 }}>
-          <ResponsiveContainer>
+  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+    {/* Top-left: bar graph */}
+    <div className="flex flex-col rounded-2xl border border-gray-200 bg-blue-200 p-4">
+      <h2 className="mb-3 text-sm font-semibold text-gray-900">Attendance</h2>
+      <div className="relative min-h-[300px] flex-1">
+        <div className="absolute inset-0">
+          <ResponsiveContainer width="100%" height="100%">
             <BarChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
               <XAxis
@@ -73,34 +81,20 @@ export default function DashboardHome() {
           </ResponsiveContainer>
         </div>
       </div>
-
-      {/* Top-right: 3x2 ring grid */}
-      <div className="rounded-2xl border border-gray-200 bg-blue-200 p-4">
-        <div className="grid grid-cols-3 gap-4">
-          {topRingsRow1.map((ring) => (
-            <LiveRing key={ring.label} {...ring} />
-          ))}
-          {[0, 1, 2].map((i) =>
-            officeStats[i] ? (
-              <LiveRing
-                key={officeStats[i].officeId}
-                label={officeStats[i].officeName}
-                value={officeStats[i].presentToday}
-                total={officeStats[i].totalEmployees}
-                color={OFFICE_COLORS[i]}
-              />
-            ) : (
-              <div key={`empty-${i}`} />
-            )
-          )}
-        </div>
-      </div>
-
-      {/* Bottom-left: Leave Requests */}
-      <NotificationPanel />
-
-      {/* Bottom-right: Attendance Punch History */}
-      <PunchHistoryPanel />
     </div>
-  );
+
+    {/* Top-right: six stat cards, 2 columns x 3 rows */}
+    <div className="grid grid-cols-1 content-start gap-3 sm:grid-cols-2">
+      {statCards.map((card) => (
+        <StatCard key={card.label} {...card} compact />
+      ))}
+    </div>
+
+    {/* Bottom-left: Leave Requests */}
+    <NotificationPanel />
+
+    {/* Bottom-right: Attendance Punch History */}
+    <PunchHistoryPanel />
+  </div>
+);
 }
