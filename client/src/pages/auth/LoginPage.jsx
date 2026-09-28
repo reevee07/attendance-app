@@ -34,7 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-xl border border-gray-200 bg-blue-100/90 p-8 shadow-lg backdrop-blur-sm">
         <div className="mb-5 flex items-center justify-center gap-4">
           <img src={LOGO_PNG} alt="Logo" className="h-9 w-auto object-contain" />
-          <h1 className="mb-1 mt-1 text-xl font-bold text-gray-900">HRS</h1>
+          <h1 className="mb-1 mt-1 text-xl font-bold text-blue-950">HRMS</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

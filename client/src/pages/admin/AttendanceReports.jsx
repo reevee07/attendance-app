@@ -29,7 +29,7 @@ export default function AttendanceReports() {
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">Daily Attendance</h2>
+        <h2 className="text-lg font-semibold text-blue-950">Daily Attendance</h2>
         <input
           type="date"
           value={date}

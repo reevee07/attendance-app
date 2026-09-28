@@ -37,7 +37,7 @@ export default function NotificationPanel() {
   }
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-blue-200 p-4">
+    <div className="rounded-2xl border border-gray-200 bg-blue-100 p-4">
       <h2 className="mb-3 text-sm font-semibold text-gray-900">Leave Requests</h2>
 
       {loading ? (

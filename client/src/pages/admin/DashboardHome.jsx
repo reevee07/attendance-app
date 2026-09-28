@@ -62,7 +62,7 @@ export default function DashboardHome() {
   return (
   <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
     {/* Top-left: bar graph */}
-    <div className="flex flex-col rounded-2xl border border-gray-200 bg-blue-200 p-4">
+    <div className="flex flex-col rounded-2xl border border-gray-200 bg-blue-100 p-4">
       <h2 className="mb-3 text-sm font-semibold text-gray-900">Attendance</h2>
       <div className="relative min-h-[300px] flex-1">
         <div className="absolute inset-0">
