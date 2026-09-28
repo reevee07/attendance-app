@@ -117,7 +117,8 @@ export default function EmployeeManagement() {
   }
 
   return (
-    <div>
+  
+    <div className="min-h-screen bg-blue-950">
       <div className="mb-2 mt-20 flex items-center justify-between">
 
         
@@ -178,13 +179,13 @@ export default function EmployeeManagement() {
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
           <input
-  required={!form._id}
-  type="password"
-  placeholder={form._id ? 'New password (leave blank to keep current)' : 'Temporary password'}
-  value={form.password}
-  onChange={(e) => setForm({ ...form, password: e.target.value })}
-  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-/>
+          required={!form._id}
+          type="password"
+          placeholder={form._id ? 'New password (leave blank to keep current)' : 'Temporary password'}
+          value={form.password}
+          onChange={(e) => setForm({ ...form, password: e.target.value })}
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
           <input
             required
             placeholder="Employee code"
@@ -205,19 +206,19 @@ export default function EmployeeManagement() {
             className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
           />
           <div>
-  <select
+          <select
     value={form.officeId}
     onChange={(e) => setForm({ ...form, officeId: e.target.value })}
     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-  >
+   >
     <option value="">No office assigned</option>
     {offices.map((office) => (
       <option key={office._id} value={office._id}>
         {office.name}
       </option>
     ))}
-  </select>
-  <div className="mt-2 flex gap-2">
+   </select>
+   <div className="mt-2 flex gap-2">
     <input
       placeholder="New office name (e.g. Kelax)"
       value={newOfficeName}
@@ -232,8 +233,9 @@ export default function EmployeeManagement() {
     >
       Add
     </Button>
+     </div>
   </div>
-</div>
+
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
