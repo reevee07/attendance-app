@@ -207,7 +207,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <Modal open={punch.open} onClose={punch.closeModal} title="Confirm Punch">
+      <Modal open={punch.open} onClose={punch.closeModal} title="Location Confirmation">
         <div className="space-y-4">
           <LocationStatus
             location={punch.location}
