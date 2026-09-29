@@ -27,7 +27,7 @@ export default function AppRoutes() {
       />
 
       <Route
-        path="/user"
+        path="/user/*"
         element={
           <ProtectedRoute allowedRoles={['user']}>
             <UserDashboard />

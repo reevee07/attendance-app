@@ -5,6 +5,12 @@ export async function requestLeave(payload) {
   return data.data;
 }
 
+export async function listMine() {
+  const { data } = await api.get('/leaves/mine');
+  return data.data;
+}
+
+
 export async function listPendingLeaves() {
   const { data } = await api.get('/leaves/pending');
   return data.data;
@@ -19,3 +25,5 @@ export async function todayLeaveCount() {
   const { data } = await api.get('/leaves/today-count');
   return data.data.count;
 }
+
+
