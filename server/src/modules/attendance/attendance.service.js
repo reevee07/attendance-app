@@ -2,8 +2,7 @@ const Attendance = require('./attendance.model');
 const Office = require('../office/office.model');
 const Employee = require('../employee/employee.model');
 const { distanceInMeters } = require('../../utils/geo');
-const supabase = require('../../config/supabase');
-const { supabaseBucket } = require('../../config/env');
+
 
 /**
  * Determines whether the next punch for this employee today should be
@@ -23,31 +22,11 @@ async function determineNextType(employeeId) {
 }
 
 /**
- * Uploads a punch photo buffer to Supabase Storage and returns its public URL.
- */
-async function uploadPunchPhoto(employeeId, fileBuffer, mimeType) {
-  const ext = mimeType.split('/')[1] || 'jpg';
-  const path = `${employeeId}/${Date.now()}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from(supabaseBucket)
-    .upload(path, fileBuffer, { contentType: mimeType, upsert: false });
-
-  if (error) throw new Error(`Photo upload failed: ${error.message}`);
-
-  const { data } = supabase.storage.from(supabaseBucket).getPublicUrl(path);
-  return data.publicUrl;
-}
-
-/**
  * Self-punch: employee punches their own attendance with geolocation + photo.
  */
-async function selfPunch({ employeeId, latitude, longitude, photoBuffer, photoMimeType }) {
+async function selfPunch({ employeeId, latitude, longitude }) {
   if (latitude === undefined || longitude === undefined) {
     throw new Error('Location is required to punch attendance');
-  }
-  if (!photoBuffer) {
-    throw new Error('Photo verification is required to punch attendance');
   }
 
   const employee = await Employee.findById(employeeId);
@@ -61,7 +40,6 @@ async function selfPunch({ employeeId, latitude, longitude, photoBuffer, photoMi
     }
   }
 
-  const photoUrl = await uploadPunchPhoto(employeeId, photoBuffer, photoMimeType);
   const type = await determineNextType(employeeId);
 
   const record = await Attendance.create({
@@ -71,7 +49,6 @@ async function selfPunch({ employeeId, latitude, longitude, photoBuffer, photoMi
     latitude,
     longitude,
     distanceFromOffice,
-    photoUrl,
     punchedBy: 'self',
   });
 

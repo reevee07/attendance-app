@@ -1,16 +1,10 @@
 import api from './api';
 
-export async function selfPunch({ latitude, longitude, photoBlob }) {
-  const formData = new FormData();
-  formData.append('latitude', latitude);
-  formData.append('longitude', longitude);
-  formData.append('photo', photoBlob, 'punch.jpg');
-
-  const { data } = await api.post('/attendance/punch', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+export async function selfPunch({ latitude, longitude }) {
+  const { data } = await api.post('/attendance/punch', { latitude, longitude });
   return data.data;
 }
+
 
 export async function adminPunch({ employeeId, type, note }) {
   const { data } = await api.post('/attendance/admin-punch', { employeeId, type, note });

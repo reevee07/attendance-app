@@ -1,5 +1,4 @@
 const express = require('express');
-const multer = require('multer');
 const {
   selfPunchController,
   adminPunchController,
@@ -10,19 +9,12 @@ const {
   byOfficeController,
   recentController,
 } = require('./attendance.controller');
+
 const { requireAuth, requireRole } = require('../../middlewares/auth.middleware');
-
-const router = express.Router();
-
-// In-memory storage - we stream straight to Supabase, never touch disk
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB cap on punch photos
-});
+const router = express.Router();  
 
 router.use(requireAuth);
-
-router.post('/punch', upload.single('photo'), selfPunchController);
+router.post('/punch', selfPunchController);
 router.post('/admin-punch', requireRole('admin'), adminPunchController);
 
 router.get('/me', myHistoryController);

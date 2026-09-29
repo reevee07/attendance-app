@@ -2,25 +2,20 @@ const asyncHandler = require('express-async-handler');
 const attendanceService = require('./attendance.service');
 
 // POST /api/attendance/punch  (self, requires photo + location)
+// POST /api/attendance/punch  (self, requires location)
 const selfPunchController = asyncHandler(async (req, res) => {
   const { latitude, longitude } = req.body;
   const employeeId = req.user._id;
-
-  if (!req.file) {
-    res.status(400);
-    throw new Error('Photo is required for self punch');
-  }
 
   const record = await attendanceService.selfPunch({
     employeeId,
     latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
     longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
-    photoBuffer: req.file.buffer,
-    photoMimeType: req.file.mimetype,
   });
 
   res.status(201).json({ success: true, data: record });
 });
+
 
 // POST /api/attendance/admin-punch  (admin only, any employee, no photo/location)
 const adminPunchController = asyncHandler(async (req, res) => {
