@@ -4,18 +4,18 @@ const attendanceService = require('./attendance.service');
 // POST /api/attendance/punch  (self, requires photo + location)
 // POST /api/attendance/punch  (self, requires location)
 const selfPunchController = asyncHandler(async (req, res) => {
-  const { latitude, longitude } = req.body;
+  const { latitude, longitude, address } = req.body;
   const employeeId = req.user._id;
 
   const record = await attendanceService.selfPunch({
     employeeId,
     latitude: latitude !== undefined ? parseFloat(latitude) : undefined,
     longitude: longitude !== undefined ? parseFloat(longitude) : undefined,
+    address,
   });
 
   res.status(201).json({ success: true, data: record });
 });
-
 
 // POST /api/attendance/admin-punch  (admin only, any employee, no photo/location)
 const adminPunchController = asyncHandler(async (req, res) => {

@@ -4,10 +4,6 @@ const Employee = require('../employee/employee.model');
 const { distanceInMeters } = require('../../utils/geo');
 
 
-/**
- * Determines whether the next punch for this employee today should be
- * 'in' or 'out'. First punch of the day is always 'in', then it alternates.
- */
 async function determineNextType(employeeId) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -24,7 +20,7 @@ async function determineNextType(employeeId) {
 /**
  * Self-punch: employee punches their own attendance with geolocation + photo.
  */
-async function selfPunch({ employeeId, latitude, longitude }) {
+async function selfPunch({ employeeId, latitude, longitude, address }) {
   if (latitude === undefined || longitude === undefined) {
     throw new Error('Location is required to punch attendance');
   }
@@ -48,12 +44,15 @@ async function selfPunch({ employeeId, latitude, longitude }) {
     timestamp: new Date(),
     latitude,
     longitude,
+    address,
     distanceFromOffice,
     punchedBy: 'self',
   });
 
   return record;
 }
+
+
 
 /**
  * Admin-punch: admin punches on behalf of any employee. No geolocation, no photo.
@@ -106,9 +105,13 @@ async function getDailySummary(dateStr) {
     {
       $group: {
         _id: '$employeeId',
-        firstIn: {
-          $min: { $cond: [{ $eq: ['$type', 'in'] }, '$timestamp', null] },
-        },
+        // The first document per employee, after sorting by time, is always
+        // the 'in' punch (first punch of the day is always 'in' by design) -
+        // so $first safely gives us that punch's own coordinates/address.
+        firstIn: { $first: '$timestamp' },
+        latitude: { $first: '$latitude' },
+        longitude: { $first: '$longitude' },
+        address: { $first: '$address' },
         lastOut: {
           $max: { $cond: [{ $eq: ['$type', 'out'] }, '$timestamp', null] },
         },
@@ -130,8 +133,12 @@ async function getDailySummary(dateStr) {
         employeeId: '$_id',
         name: '$employee.name',
         email: '$employee.email',
+        employeeCode: '$employee.employeeCode',
         firstIn: 1,
         lastOut: 1,
+        latitude: 1,
+        longitude: 1,
+        address: 1,
         totalPunches: 1,
         hasAdminEntry: 1,
         _id: 0,
@@ -142,7 +149,6 @@ async function getDailySummary(dateStr) {
 
   return summary;
 }
-
 /**
  * Distinct employees present (had a punch) per day, for the last `days` days.
  * Used to plot the admin's attendance trend graph.

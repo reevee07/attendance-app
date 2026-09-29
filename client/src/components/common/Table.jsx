@@ -16,7 +16,7 @@ export default function Table({ columns, data, emptyLabel = 'No records found' }
             {columns.map((col) => (
               <th
                 key={col.key}
-                className="px-4 py-3 text-left font-medium text-gray-500"
+                className="px-4 py-3 text-left font-medium text-blue-950"
               >
                 {col.header}
               </th>

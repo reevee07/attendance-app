@@ -71,7 +71,7 @@ export default function UserDashboard() {
       header: 'Type',
       render: (row) => (
         <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
             row.type === 'in' ? 'bg-green-200 text-green-800' : 'bg-red-400 text-red-900'
           }`}
         >
@@ -111,15 +111,15 @@ export default function UserDashboard() {
   <PunchButton onPunchSuccess={loadHistory} />
 </div>
 
-<div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4">
+<div className="mb-6 rounded-2xl border border-gray-200 bg-blue-100 p-4">
   <h2 className="mb-2 text-sm font-semibold text-gray-900">Request Leave</h2>
   <input
     placeholder="Reason"
     value={leaveReason}
     onChange={(e) => setLeaveReason(e.target.value)}
-    className="mb-2 w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
+    className="mb-2 w-full rounded-full border border-gray-300  px-3 py-2 text-sm"
   />
-  <Button variant="secondary" loading={requestingLeave} onClick={handleRequestLeave} className="w-full">
+  <Button variant="danger" loading={requestingLeave} onClick={handleRequestLeave} className="w-full">
     Request Leave
   </Button>
   {leaveMessage && (

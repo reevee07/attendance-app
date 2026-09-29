@@ -1,7 +1,7 @@
 import api from './api';
 
-export async function selfPunch({ latitude, longitude }) {
-  const { data } = await api.post('/attendance/punch', { latitude, longitude });
+export async function selfPunch({ latitude, longitude, address }) {
+  const { data } = await api.post('/attendance/punch', { latitude, longitude, address });
   return data.data;
 }
 

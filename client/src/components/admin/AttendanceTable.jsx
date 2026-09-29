@@ -6,37 +6,75 @@ function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-/**
- * Renders the admin daily summary: first-in / last-out per employee.
- * Rows with any admin-entered punch get a visible "Admin Entry" badge -
- * these are trust-based (no photo/location) and should never be mistaken
- * for a verified self-punch.
- */
 export default function AttendanceTable({ data }) {
   const columns = [
-    { key: 'name', header: 'Employee' },
-    { key: 'email', header: 'Email' },
     {
-      key: 'firstIn',
-      header: 'First In',
-      render: (row) => formatTime(row.firstIn),
+  key: 'name',
+  header: 'Name',
+  render: (row) => (
+    <span className="font-bold uppercase">
+      {row.name || '—'}
+    </span>
+  ),
+},
+{
+  key: 'employeeCode',
+  header: 'Code',
+  render: (row) => (
+    <span className="whitespace-nowrap font-semibold">
+      {row.employeeCode || ''}
+    </span>
+  ),
+},
+    {
+  key: 'firstIn',
+  header: 'In',
+  render: (row) => (
+    <span className="whitespace-nowrap font-semibold">
+      {formatTime(row.firstIn)}
+    </span>
+  ),
+},
+{
+  key: 'lastOut',
+  header: 'Out',
+  render: (row) => (
+    <span className="whitespace-nowrap font-semibold ">
+      {formatTime(row.lastOut)}
+    </span>
+  ),
+},
+    {
+      key: 'address',
+      header: 'Address',
+      render: (row) => (
+        <span className="line-clamp-3 break-words text-xs font-semibold leading-4" title={row.address || ''}>
+          {row.address || ''}
+        </span>
+      ),
     },
     {
-      key: 'lastOut',
-      header: 'Last Out',
-      render: (row) => formatTime(row.lastOut),
-    },
-    { key: 'totalPunches', header: 'Punches' },
+  key: 'coordinates',
+  header: 'Location',
+  render: (row) =>
+    row.latitude !== undefined && row.latitude !== null ? (
+      <span className="line-clamp-3 text-xs font-semibold ">
+        {`${row.latitude.toFixed(5)}, ${row.longitude.toFixed(5)}`}
+      </span>
+    ) : (
+      ''
+    ),
+},
     {
       key: 'hasAdminEntry',
       header: 'Source',
       render: (row) =>
         row.hasAdminEntry ? (
-          <span className="inline-flex items-center rounded-full bg-amber-300 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-            Admin Entry
+          <span className="inline-flex whitespace-nowrap items-center rounded-full bg-amber-300 px-3 py-2 text-xs font-medium text-amber-800">
+            By Admin
           </span>
         ) : (
-          <span className="inline-flex items-center rounded-full bg-green-300 px-2.5 py-0.5 text-xs font-medium text-green-800">
+          <span className="inline-flex whitespace-nowrap items-center rounded-full bg-green-300 px-3 py-2 text-xs font-medium text-green-800">
             Self Punch
           </span>
         ),
@@ -44,4 +82,6 @@ export default function AttendanceTable({ data }) {
   ];
 
   return <Table columns={columns} data={data} emptyLabel="No attendance recorded for this day" />;
+
+
 }
