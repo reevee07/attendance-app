@@ -1,15 +1,36 @@
 const Leave = require('./leave.model');
 
-async function requestLeave(employeeId, { date, reason }) {
-  if (!date) throw new Error('Date is required');
+async function requestLeave(employeeId, { date, toDate, reason }) {
+  if (!date) throw new Error('Start date is required');
+  if (!reason || !reason.trim()) throw new Error('Reason is required');
 
-  const leaveDate = new Date(date);
-  leaveDate.setHours(0, 0, 0, 0);
+  const startDate = new Date(date);
+  startDate.setHours(0, 0, 0, 0);
+  const endDate = toDate ? new Date(toDate) : new Date(date);
+  endDate.setHours(0, 0, 0, 0);
 
-  const existing = await Leave.findOne({ employeeId, date: leaveDate, status: 'pending' });
-  if (existing) throw new Error('You already have a pending leave request for this date');
+  if (endDate < startDate) throw new Error('End date cannot be before start date');
 
-  return Leave.create({ employeeId, date: leaveDate, reason });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (startDate < today) throw new Error('Leave date cannot be in the past');
+
+  // Build one entry per calendar day in the range (inclusive)
+  const days = [];
+  for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
+  }
+
+  // Block if any day in the range already has a pending request
+  const existing = await Leave.findOne({ employeeId, status: 'pending', date: { $in: days } });
+  if (existing) throw new Error('You already have a pending leave request overlapping this date range');
+
+  return Leave.insertMany(days.map((d) => ({ employeeId, date: d, reason: reason.trim() })));
+}
+
+
+async function listMine(employeeId) {
+  return Leave.find({ employeeId }).sort({ date: -1 });
 }
 
 async function listPending() {
@@ -42,4 +63,4 @@ async function countApprovedForDate(dateStr) {
   return Leave.countDocuments({ status: 'approved', date: { $gte: targetDate, $lt: nextDay } });
 }
 
-module.exports = { requestLeave, listPending, decide, countApprovedForDate };
+module.exports = { requestLeave, listMine, listPending, decide, countApprovedForDate };

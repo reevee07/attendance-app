@@ -7,6 +7,14 @@ const requestLeaveController = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: leave });
 });
 
+
+// GET /api/leaves/mine  (logged-in employee's own requests, any status)
+const listMineController = asyncHandler(async (req, res) => {
+  const leaves = await leaveService.listMine(req.user._id);
+  res.status(200).json({ success: true, data: leaves });
+});
+
+
 // GET /api/leaves/pending  (admin only)
 const listPendingController = asyncHandler(async (req, res) => {
   const leaves = await leaveService.listPending();
@@ -25,4 +33,10 @@ const todayCountController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: { count } });
 });
 
-module.exports = { requestLeaveController, listPendingController, decideController, todayCountController };
+module.exports = {
+  requestLeaveController,
+  listMineController,
+  listPendingController,
+  decideController,
+  todayCountController,
+};

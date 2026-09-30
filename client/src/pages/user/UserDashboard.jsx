@@ -8,7 +8,7 @@ import ProfilePage from './ProfilePage.jsx';
 
 export default function UserDashboard() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-gray-100 pb-20">
       <Routes>
         <Route index element={<HomePage />} />
         <Route path="attendance" element={<AttendancePage />} />

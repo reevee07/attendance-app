@@ -1,5 +1,6 @@
 import React from 'react';
 
+
 export default function LocationStatus({ location, loading, error, address, addressLoading }) {
   if (loading) {
     return <p className="text-sm text-gray-500">Fetching your location...</p>;
@@ -11,12 +12,12 @@ export default function LocationStatus({ location, loading, error, address, addr
     return (
       <div>
         <p className="text-sm text-green-600">
-          Location captured ({location.latitude.toFixed(5)}, {location.longitude.toFixed(5)})
+           ({location.latitude.toFixed(5)}, {location.longitude.toFixed(5)})
         </p>
         {addressLoading ? (
           <p className="mt-1 text-xs text-gray-400">Looking up address...</p>
         ) : address ? (
-          <p className="mt-1 text-xs text-gray-500">{address}</p>
+          <p className="mt-1 text-xs text-gray-900">{address}</p>
         ) : null}
       </div>
     );

@@ -17,7 +17,8 @@ export default function Modal({ open, onClose, title, children }) {
             
           >
             ✕
-          </button>
+          </button> 
+          
         </div>
         <div className="px-5 py-4">{children} </div>
       </div>

@@ -16,7 +16,8 @@ function tomorrowISO() {
 }
 
 export default function LeavePage() {
-  const [date, setDate] = useState(tomorrowISO());
+  const [fromDate, setFromDate] = useState(tomorrowISO());
+  const [toDate, setToDate] = useState(tomorrowISO());
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
@@ -39,11 +40,25 @@ export default function LeavePage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!reason.trim()) {
+      setMessage({ type: 'error', text: 'Please enter a reason for your leave request.' });
+      return;
+    }
+    if (toDate < fromDate) {
+      setMessage({ type: 'error', text: 'End date cannot be before the start date.' });
+      return;
+    }
+
     setSubmitting(true);
     setMessage(null);
     try {
-      await leaveService.requestLeave({ date, reason: reason.trim() || undefined });
-      setMessage({ type: 'success', text: 'Leave request sent for approval.' });
+      const created = await leaveService.requestLeave({ date: fromDate, toDate, reason: reason.trim() });
+      const dayCount = Array.isArray(created) ? created.length : 1;
+      setMessage({
+        type: 'success',
+        text: `Leave request sent for approval (${dayCount} day${dayCount > 1 ? 's' : ''}).`,
+      });
       setReason('');
       loadMyLeaves();
     } catch (err) {
@@ -57,27 +72,46 @@ export default function LeavePage() {
     <div className="mx-auto max-w-md px-4 pt-6">
       <h1 className="mb-4 text-lg font-bold text-gray-900">Request Leave</h1>
 
-      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-0xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Date</label>
-          <input
-            type="date"
-            required
-            min={new Date().toISOString().slice(0, 10)}
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          />
+      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="mb-1 block text-xs font-medium text-gray-600">From</label>
+            <input
+              type="date"
+              required
+              min={new Date().toISOString().slice(0, 10)}
+              value={fromDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                if (toDate < e.target.value) setToDate(e.target.value);
+              }}
+              className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="mb-1 block text-xs font-medium text-gray-600">To</label>
+            <input
+              type="date"
+              required
+              min={fromDate}
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
+            />
+          </div>
         </div>
+
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600">Reason</label>
+          <label className="mb-1 block text-xs font-medium text-gray-600"></label>
           <input
-            placeholder="e.g. Doctor's appointment"
+            required
+            placeholder="Reason"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
           />
         </div>
+
         {message && (
           <p className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
             {message.text}
@@ -88,21 +122,25 @@ export default function LeavePage() {
         </Button>
       </form>
 
-      <h2 className="mb-2 text-sm font-semibold text-gray-900">My Requests</h2>
       {loading ? (
         <Loader />
       ) : myLeaves.length === 0 ? (
         <p className="py-6 text-center text-sm text-gray-400">No leave requests yet</p>
       ) : (
-        <div className="space-y-2">
-          {myLeaves.map((leave) => (
+        (() => {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const upcoming = myLeaves.filter((l) => new Date(l.date) >= today);
+          const past = myLeaves.filter((l) => new Date(l.date) < today);
+
+          const renderLeave = (leave) => (
             <div
               key={leave._id}
               className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  {new Date(leave.date).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })}
+                  {new Date(leave.date).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
                 </p>
                 {leave.reason && <p className="text-xs text-gray-500">{leave.reason}</p>}
               </div>
@@ -110,8 +148,26 @@ export default function LeavePage() {
                 {leave.status}
               </span>
             </div>
-          ))}
-        </div>
+          );
+
+          return (
+            <>
+              <h2 className="mb-2 text-sm font-semibold text-gray-900">Leave History</h2>
+              {upcoming.length === 0 ? (
+                <p className="mb-6 py-4 text-center text-sm text-gray-400">No upcoming requests</p>
+              ) : (
+                <div className="mb-6 space-y-2">{upcoming.map(renderLeave)}</div>
+              )}
+
+              <h2 className="mb-2 text-sm font-semibold text-gray-900">Past Requests</h2>
+              {past.length === 0 ? (
+                <p className="py-4 text-center text-sm text-gray-400">No past requests</p>
+              ) : (
+                <div className="space-y-2">{past.map(renderLeave)}</div>
+              )}
+            </>
+          );
+        })()
       )}
     </div>
   );
