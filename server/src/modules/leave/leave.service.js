@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Leave = require('./leave.model');
 
 async function requestLeave(employeeId, { date, toDate, reason }) {
@@ -25,7 +26,8 @@ async function requestLeave(employeeId, { date, toDate, reason }) {
   const existing = await Leave.findOne({ employeeId, status: 'pending', date: { $in: days } });
   if (existing) throw new Error('You already have a pending leave request overlapping this date range');
 
-  return Leave.insertMany(days.map((d) => ({ employeeId, date: d, reason: reason.trim() })));
+  const groupId = new mongoose.Types.ObjectId();
+  return Leave.insertMany(days.map((d) => ({ employeeId, date: d, reason: reason.trim(), groupId })));
 }
 
 

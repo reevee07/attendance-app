@@ -7,12 +7,51 @@ const STATUS_STYLES = {
   pending: 'bg-amber-50 text-amber-700',
   approved: 'bg-green-50 text-green-700',
   rejected: 'bg-red-50 text-red-700',
+  mixed: 'bg-purple-50 text-purple-700',
 };
 
 function tomorrowISO() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   return d.toISOString().slice(0, 10);
+}
+
+function shortDate(date) {
+  return new Date(date).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * Groups flat Leave documents (one per day) back into their original
+ * requests, using groupId. Older leaves created before groupId existed
+ * fall back to being their own single-day group (keyed by _id).
+ */
+function groupLeaves(leaves) {
+  const groups = new Map();
+
+  for (const leave of leaves) {
+    const key = leave.groupId || leave._id;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(leave);
+  }
+
+  return Array.from(groups.values()).map((days) => {
+    days.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const statuses = new Set(days.map((d) => d.status));
+
+    let status;
+    if (statuses.has('pending')) status = 'pending';
+    else if (statuses.size === 1) status = days[0].status;
+    else status = 'mixed';
+
+    return {
+      key: days[0].groupId || days[0]._id,
+      startDate: days[0].date,
+      endDate: days[days.length - 1].date,
+      reason: days[0].reason,
+      status,
+      sortDate: days[0].date,
+    };
+  });
 }
 
 export default function LeavePage() {
@@ -68,11 +107,37 @@ export default function LeavePage() {
     }
   }
 
+  const groups = groupLeaves(myLeaves).sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate));
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const upcoming = groups.filter((g) => new Date(g.endDate) >= today);
+  const past = groups.filter((g) => new Date(g.endDate) < today);
+
+  const renderGroup = (group) => (
+    <div
+      key={group.key}
+      className="flex items-center justify-between rounded-0xl border border-gray-200 bg-white p-4 shadow-sm"
+    >
+      <div>
+        <p className="text-sm font-medium text-gray-900">
+          {group.startDate === group.endDate || shortDate(group.startDate) === shortDate(group.endDate)
+            ? shortDate(group.startDate)
+            : `${shortDate(group.startDate)} – ${shortDate(group.endDate)}`}
+        </p>
+        {group.reason && <p className="text-xs text-gray-500">{group.reason}</p>}
+      </div>
+      <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[group.status]}`}>
+        {group.status}
+      </span>
+    </div>
+  );
+
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
       <h1 className="mb-4 text-lg font-bold text-gray-900">Request Leave</h1>
 
-      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-0xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="mb-1 block text-xs font-medium text-gray-600">From</label>
@@ -124,50 +189,22 @@ export default function LeavePage() {
 
       {loading ? (
         <Loader />
-      ) : myLeaves.length === 0 ? (
-        <p className="py-6 text-center text-sm text-gray-400">No leave requests yet</p>
       ) : (
-        (() => {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const upcoming = myLeaves.filter((l) => new Date(l.date) >= today);
-          const past = myLeaves.filter((l) => new Date(l.date) < today);
+        <>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">History</h2>
+          {upcoming.length === 0 ? (
+            <p className="mb-6 py-4 text-center text-sm text-gray-400">No upcoming requests</p>
+          ) : (
+            <div className="mb-6 space-y-2">{upcoming.map(renderGroup)}</div>
+          )}
 
-          const renderLeave = (leave) => (
-            <div
-              key={leave._id}
-              className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
-            >
-              <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {new Date(leave.date).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}
-                </p>
-                {leave.reason && <p className="text-xs text-gray-500">{leave.reason}</p>}
-              </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[leave.status]}`}>
-                {leave.status}
-              </span>
-            </div>
-          );
-
-          return (
-            <>
-              <h2 className="mb-2 text-sm font-semibold text-gray-900">Leave History</h2>
-              {upcoming.length === 0 ? (
-                <p className="mb-6 py-4 text-center text-sm text-gray-400">No upcoming requests</p>
-              ) : (
-                <div className="mb-6 space-y-2">{upcoming.map(renderLeave)}</div>
-              )}
-
-              <h2 className="mb-2 text-sm font-semibold text-gray-900">Past Requests</h2>
-              {past.length === 0 ? (
-                <p className="py-4 text-center text-sm text-gray-400">No past requests</p>
-              ) : (
-                <div className="space-y-2">{past.map(renderLeave)}</div>
-              )}
-            </>
-          );
-        })()
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">Past Requests</h2>
+          {past.length === 0 ? (
+            <p className="py-4 text-center text-sm text-gray-400">No past requests</p>
+          ) : (
+            <div className="space-y-2">{past.map(renderGroup)}</div>
+          )}
+        </>
       )}
     </div>
   );

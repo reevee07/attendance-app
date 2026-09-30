@@ -4,7 +4,8 @@ const leaveSchema = new mongoose.Schema(
   {
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true, index: true },
     date: { type: Date, required: true }, // the day being requested off
-    reason: { type: String, trim: true },
+    groupId: { type: mongoose.Schema.Types.ObjectId, index: true }, // links days from the same multi-day request
+    reason: { type: String, trim: true }, 
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     decidedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     decidedAt: { type: Date },
