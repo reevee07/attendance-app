@@ -88,7 +88,7 @@ export default function HomePage() {
       )}
 
       <div>
-        <p className="text-sm text-blue-900">Welcomee,</p>
+        <p className="text-sm text-blue-900">Welcome,</p>
 
         <h1 className="text-xl font-bold text-blue-950">
           {user.name}
