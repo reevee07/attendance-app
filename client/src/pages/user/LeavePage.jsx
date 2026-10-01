@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import * as leaveService from '../../services/leaveService';
+import LeaveBalanceSection from '../../components/user/leave/LeaveBalanceSection.jsx';
+import DayTypeSelector from '../../components/user/leave/DayTypeSelector.jsx';
+import LeaveTypeDropdown, { LEAVE_TYPES } from '../../components/user/leave/LeaveTypeDropdown.jsx';
+import { calculateLeaveDuration } from '../../utils/leaveDuration';
 
 const STATUS_STYLES = {
   pending: 'bg-amber-50 text-amber-700',
@@ -57,7 +61,8 @@ function groupLeaves(leaves) {
 export default function LeavePage() {
   const [fromDate, setFromDate] = useState(tomorrowISO());
   const [toDate, setToDate] = useState(tomorrowISO());
-  const [reason, setReason] = useState('');
+  const [dayType, setDayType] = useState('full'); // Part 8 default: Full Day
+  const [leaveType, setLeaveType] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [myLeaves, setMyLeaves] = useState([]);
@@ -77,11 +82,13 @@ export default function LeavePage() {
     loadMyLeaves();
   }, []);
 
+  const duration = calculateLeaveDuration(fromDate, toDate, dayType);
+
   async function handleSubmit(e) {
     e.preventDefault();
 
-    if (!reason.trim()) {
-      setMessage({ type: 'error', text: 'Please enter a reason for your leave request.' });
+    if (!leaveType) {
+      setMessage({ type: 'error', text: 'Please select a leave type.' });
       return;
     }
     if (toDate < fromDate) {
@@ -92,13 +99,21 @@ export default function LeavePage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const created = await leaveService.requestLeave({ date: fromDate, toDate, reason: reason.trim() });
+      // NOTE: the backend's Leave model currently only stores a free-text
+      // "reason" per day, and always creates one full day per calendar day -
+      // it does not yet understand dayType/duration or validate against a
+      // real balance. We send the selected leave type's label as the reason
+      // so existing data/admin views keep working unchanged. Half-day-aware
+      // and balance-checked submission is a later backend step.
+      const leaveLabel = LEAVE_TYPES.find((t) => t.value === leaveType)?.label || leaveType;
+      const created = await leaveService.requestLeave({ date: fromDate, toDate, reason: leaveLabel });
       const dayCount = Array.isArray(created) ? created.length : 1;
       setMessage({
         type: 'success',
         text: `Leave request sent for approval (${dayCount} day${dayCount > 1 ? 's' : ''}).`,
       });
-      setReason('');
+      setLeaveType('');
+      setDayType('full');
       loadMyLeaves();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to submit request.' });
@@ -135,7 +150,8 @@ export default function LeavePage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-4 text-lg font-bold text-gray-900">Request Leave</h1>
+      <h1 className="mb-1 text-lg font-bold text-gray-900">Leave</h1>
+      <LeaveBalanceSection leaveHistoryCount={myLeaves.length} />
 
       <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-0xl border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex gap-3">
@@ -165,16 +181,11 @@ export default function LeavePage() {
             />
           </div>
         </div>
+        <LeaveTypeDropdown value={leaveType} onChange={setLeaveType} />
+
 
         <div>
-          <label className="mb-1 block text-xs font-medium text-gray-600"></label>
-          <input
-            required
-            placeholder="Reason"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
-          />
+         <DayTypeSelector value={dayType} onChange={setDayType} />
         </div>
 
         {message && (
@@ -183,7 +194,7 @@ export default function LeavePage() {
           </p>
         )}
         <Button type="submit" loading={submitting} className="w-full">
-          Submit Request
+          Request Leave
         </Button>
       </form>
 
@@ -193,7 +204,7 @@ export default function LeavePage() {
         <>
           <h2 className="mb-2 text-sm font-semibold text-gray-900">History</h2>
           {upcoming.length === 0 ? (
-            <p className="mb-6 py-4 text-center text-sm text-gray-400">No upcoming requests</p>
+            <p className="mb-6 py-4 text-center text-sm text-gray-400">No History</p>
           ) : (
             <div className="mb-6 space-y-2">{upcoming.map(renderGroup)}</div>
           )}
