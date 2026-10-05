@@ -6,6 +6,7 @@ import AttendancePage from './AttendancePage.jsx';
 import LeavePage from './LeavePage.jsx';
 import ProfilePage from './ProfilePage.jsx';
 
+
 export default function UserDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 pb-20">

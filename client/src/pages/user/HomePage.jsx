@@ -153,15 +153,20 @@ export default function HomePage() {
               </div>
             )}
 
+            <div className="min-w-0">
+              
 
-            <div>
-              <p className="text-sm font-medium text-white/80">
-                Welcome,
-              </p>
-
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-white">
+              {/* Employee Name */}
+              <h1 className="mt-1 font-medium text-2xl text-white/90">
                 {user.name}
               </h1>
+
+              {/* Employee Designation */}
+              <p className=" truncate text-sm  tracking-tight text-white">
+                {user.designation}
+              </p>
+
+          
             </div>
 
           </div>
@@ -314,11 +319,10 @@ export default function HomePage() {
             <div className="mb-2.5 flex items-center gap-2">
 
               <span
-                className={`h-2 w-2 rounded-full transition-colors ${
-                  hasCheckedInToday
-                    ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
-                    : "bg-gray-300"
-                }`}
+                className={`h-2 w-2 rounded-full transition-colors ${hasCheckedInToday
+                  ? "bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"
+                  : "bg-gray-300"
+                  }`}
               />
 
               <p className="text-[14px] font-semibold tracking-tight text-gray-900">
@@ -331,13 +335,12 @@ export default function HomePage() {
             {/* Status */}
 
             <span
-              className={`mb-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${
-                isCheckedIn
-                  ? "bg-green-100 text-green-700"
-                  : hasCheckedInToday
-                    ? "bg-gray-100 text-gray-600"
-                    : "bg-amber-100 text-amber-700"
-              }`}
+              className={`mb-3 inline-flex items-center rounded-full px-3 py-1 text-[11px] font-medium ${isCheckedIn
+                ? "bg-green-100 text-green-700"
+                : hasCheckedInToday
+                  ? "bg-gray-100 text-gray-600"
+                  : "bg-amber-100 text-amber-700"
+                }`}
             >
               {isCheckedIn
                 ? "Checked In"
@@ -389,11 +392,10 @@ export default function HomePage() {
 
               <button
                 onClick={punch.openModal}
-                className={`relative flex h-12 w-[82px] items-center justify-center rounded-full text-base font-bold text-white transition-all duration-200 active:scale-95 ${
-                  isCheckedIn
-                    ? "bg-red-600 shadow-[0_5px_18px_rgba(239,68,68,0.30)] ring-4 ring-red-200 hover:bg-red-700"
-                    : "bg-green-600 shadow-[0_5px_18px_rgba(34,197,94,0.30)] ring-4 ring-green-200 hover:bg-green-700"
-                }`}
+                className={`relative flex h-12 w-[82px] items-center justify-center rounded-full text-base font-bold text-white transition-all duration-200 active:scale-95 ${isCheckedIn
+                  ? "bg-red-600 shadow-[0_5px_18px_rgba(239,68,68,0.30)] ring-4 ring-red-200 hover:bg-red-700"
+                  : "bg-green-600 shadow-[0_5px_18px_rgba(34,197,94,0.30)] ring-4 ring-green-200 hover:bg-green-700"
+                  }`}
               >
 
                 <span className="absolute inset-[3px] rounded-full border border-white/20" />
@@ -541,11 +543,10 @@ export default function HomePage() {
                     {/* Status dot */}
 
                     <span
-                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
-                        day.status === "No Punch"
-                          ? "bg-gray-300"
-                          : "bg-green-500"
-                      }`}
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${day.status === "No Punch"
+                        ? "bg-gray-300"
+                        : "bg-green-500"
+                        }`}
                     />
 
 
@@ -560,22 +561,22 @@ export default function HomePage() {
 
                         {day.firstIn
                           ? new Date(
-                              day.firstIn
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                            day.firstIn
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                           : "—"}
 
                         {" – "}
 
                         {day.lastOut
                           ? new Date(
-                              day.lastOut
-                            ).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
+                            day.lastOut
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
                           : "—"}
 
                       </p>
