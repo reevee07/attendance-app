@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
 import * as leaveService from '../../services/leaveService';
+import * as leaveBalanceService from '../../services/leaveBalanceService';
 import LeaveBalanceSection from '../../components/user/leave/LeaveBalanceSection.jsx';
 import DayTypeSelector from '../../components/user/leave/DayTypeSelector.jsx';
 import LeaveTypeDropdown, { LEAVE_TYPES } from '../../components/user/leave/LeaveTypeDropdown.jsx';
@@ -47,10 +48,13 @@ function groupLeaves(leaves) {
     else if (statuses.size === 1) status = days[0].status;
     else status = 'mixed';
 
+    const typeLabel = LEAVE_TYPES.find((t) => t.value === days[0].leaveType)?.label || days[0].leaveType;
+
     return {
       key: days[0].groupId || days[0]._id,
       startDate: days[0].date,
       endDate: days[days.length - 1].date,
+      leaveTypeLabel: typeLabel,
       reason: days[0].reason,
       status,
       sortDate: days[0].date,
@@ -66,20 +70,30 @@ export default function LeavePage() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
   const [myLeaves, setMyLeaves] = useState([]);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
 
   async function loadMyLeaves() {
+    const data = await leaveService.listMine();
+    setMyLeaves(data);
+  }
+
+  async function loadBalance() {
+    const data = await leaveBalanceService.getMyLeaveBalance();
+    setBalance(data);
+  }
+
+  async function loadAll() {
     setLoading(true);
     try {
-      const data = await leaveService.listMine();
-      setMyLeaves(data);
+      await Promise.all([loadMyLeaves(), loadBalance()]);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadMyLeaves();
+    loadAll();
   }, []);
 
   const duration = calculateLeaveDuration(fromDate, toDate, dayType);
@@ -99,14 +113,7 @@ export default function LeavePage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      // NOTE: the backend's Leave model currently only stores a free-text
-      // "reason" per day, and always creates one full day per calendar day -
-      // it does not yet understand dayType/duration or validate against a
-      // real balance. We send the selected leave type's label as the reason
-      // so existing data/admin views keep working unchanged. Half-day-aware
-      // and balance-checked submission is a later backend step.
-      const leaveLabel = LEAVE_TYPES.find((t) => t.value === leaveType)?.label || leaveType;
-      const created = await leaveService.requestLeave({ date: fromDate, toDate, reason: leaveLabel });
+      const created = await leaveService.requestLeave({ date: fromDate, toDate, leaveType });
       const dayCount = Array.isArray(created) ? created.length : 1;
       setMessage({
         type: 'success',
@@ -114,7 +121,7 @@ export default function LeavePage() {
       });
       setLeaveType('');
       setDayType('full');
-      loadMyLeaves();
+      loadAll(); // refresh both history AND balance - a pending request now counts against available
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to submit request.' });
     } finally {
@@ -132,7 +139,7 @@ export default function LeavePage() {
   const renderGroup = (group) => (
     <div
       key={group.key}
-      className="flex items-center justify-between rounded-0xl border border-gray-200 bg-white p-4 shadow-sm"
+      className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
     >
       <div>
         <p className="text-sm font-medium text-gray-900">
@@ -140,7 +147,7 @@ export default function LeavePage() {
             ? shortDate(group.startDate)
             : `${shortDate(group.startDate)} – ${shortDate(group.endDate)}`}
         </p>
-        {group.reason && <p className="text-xs text-gray-500">{group.reason}</p>}
+        <p className="text-xs text-gray-500">{group.leaveTypeLabel}</p>
       </div>
       <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${STATUS_STYLES[group.status]}`}>
         {group.status}
@@ -151,9 +158,11 @@ export default function LeavePage() {
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
       <h1 className="mb-1 text-lg font-bold text-gray-900">Leave</h1>
-      <LeaveBalanceSection leaveHistoryCount={myLeaves.length} />
+      <LeaveBalanceSection balance={balance} leaveHistoryCount={myLeaves.length} />
 
-      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-0xl border border-gray-200 bg-white p-4 shadow-sm">
+      <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+        <p className="text-sm font-semibold text-gray-900">Request Leave</p>
+
         <div className="flex gap-3">
           <div className="flex-1">
             <label className="mb-1 block text-xs font-medium text-gray-600">From</label>
@@ -181,12 +190,16 @@ export default function LeavePage() {
             />
           </div>
         </div>
-        <LeaveTypeDropdown value={leaveType} onChange={setLeaveType} />
 
+        
 
         <div>
-         <DayTypeSelector value={dayType} onChange={setDayType} />
+          <LeaveTypeDropdown value={leaveType} onChange={setLeaveType} balance={balance} />
         </div>
+
+        <DayTypeSelector value={dayType} onChange={setDayType} />
+
+
 
         {message && (
           <p className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
@@ -194,7 +207,7 @@ export default function LeavePage() {
           </p>
         )}
         <Button type="submit" loading={submitting} className="w-full">
-          Request Leave
+          Submit Request
         </Button>
       </form>
 
@@ -202,9 +215,9 @@ export default function LeavePage() {
         <Loader />
       ) : (
         <>
-          <h2 className="mb-2 text-sm font-semibold text-gray-900">History</h2>
+          <h2 className="mb-2 text-sm font-semibold text-gray-900">Upcoming Requests</h2>
           {upcoming.length === 0 ? (
-            <p className="mb-6 py-4 text-center text-sm text-gray-400">No History</p>
+            <p className="mb-6 py-4 text-center text-sm text-gray-400">No upcoming requests</p>
           ) : (
             <div className="mb-6 space-y-2">{upcoming.map(renderGroup)}</div>
           )}

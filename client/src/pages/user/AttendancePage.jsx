@@ -33,7 +33,7 @@ export default function AttendancePage() {
           {days.map((day) => (
             <div
               key={day.dateKey}
-              className="flex items-center justify-between rounded-0xl border border-gray-200 bg-white p-4 shadow-sm"
+              className="flex items-center justify-between rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
             >
               <div>
                 <p className="text-sm font-semibold text-gray-900">{formatDayLabel(day.date)}</p>

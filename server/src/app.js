@@ -9,6 +9,7 @@ const employeeRoutes = require('./modules/employee/employee.routes');
 const officeRoutes = require('./modules/office/office.routes');
 const attendanceRoutes = require('./modules/attendance/attendance.routes');
 const leaveRoutes = require('./modules/leave/leave.routes');
+const leaveBalanceRoutes = require('./modules/leaveBalance/leaveBalance.routes');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use('/api/employees', employeeRoutes);
 app.use('/api/offices', officeRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/leaves', leaveRoutes);
+app.use('/api/leave-balance', leaveBalanceRoutes);
 
 app.use(notFound);
 app.use(errorMiddleware);

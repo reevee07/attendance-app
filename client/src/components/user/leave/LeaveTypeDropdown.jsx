@@ -11,7 +11,11 @@ export const LEAVE_TYPES = [
   { value: 'compOff', label: 'Comp Off' },
 ];
 
-export default function LeaveTypeDropdown({ value, onChange }) {
+// Part 4: Leave Without Pay has no real balance, so it's never disabled
+// even though its displayed "available" is always 0.
+const NEVER_DISABLE = ['leaveWithoutPay'];
+
+export default function LeaveTypeDropdown({ value, onChange, balance }) {
   return (
     <select
       required
@@ -20,13 +24,18 @@ export default function LeaveTypeDropdown({ value, onChange }) {
       className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
     >
       <option value="" disabled>
-        Reason
+        Select Leave Type
       </option>
-      {LEAVE_TYPES.map((type) => (
-        <option key={type.value} value={type.value}>
-          {type.label}
-        </option>
-      ))}
+      {LEAVE_TYPES.map((type) => {
+        const available = balance?.[type.value]?.available ?? 0;
+        const disabled = !NEVER_DISABLE.includes(type.value) && available <= 0;
+        return (
+          <option key={type.value} value={type.value} disabled={disabled}>
+            {type.label}
+            {disabled ? ' (no balance)' : ''}
+          </option>
+        );
+      })}
     </select>
   );
 }
