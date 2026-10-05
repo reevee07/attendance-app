@@ -157,7 +157,6 @@ export default function LeavePage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
-      <h1 className="mb-1 text-lg font-bold text-gray-900">Leave</h1>
       <LeaveBalanceSection balance={balance} leaveHistoryCount={myLeaves.length} />
 
       <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
