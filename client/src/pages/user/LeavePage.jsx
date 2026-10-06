@@ -121,7 +121,7 @@ export default function LeavePage() {
       });
       setLeaveType('');
       setDayType('full');
-      loadAll(); // refresh both history AND balance - a pending request now counts against available
+      loadAll(); 
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to submit request.' });
     } finally {

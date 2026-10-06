@@ -19,7 +19,7 @@ export default function DayTypeSelector({ value, onChange, singleDayOnly }) {
             type="button"
             disabled={disabled}
             onClick={() => onChange(optValue)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition ${
+            className={`flex flex-1 items-center justify-center gap-1 rounded-full px-1.5 py-2 text-xs font-medium transition ${
               disabled
                 ? 'cursor-not-allowed bg-gray-50 text-gray-300'
                 : active
