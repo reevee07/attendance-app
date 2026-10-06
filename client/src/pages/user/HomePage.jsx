@@ -418,7 +418,9 @@ export default function HomePage() {
             STEP 4 — TODAY'S HOURS
         ======================================================= */}
 
-        <div className="relative overflow-hidden rounded-[28px] border border-white/90 bg-white/95 p-4 shadow-[0_12px_35px_rgba(30,64,175,0.08)] backdrop-blur-xl">
+      
+        
+        <div className="relative overflow-hidden rounded-3xl border border-white/90 bg-white/95 p-4 shadow-[0_12px_35px_rgba(30,64,175,0.08)] backdrop-blur-xl">
 
 
           {/* Decorative glow */}

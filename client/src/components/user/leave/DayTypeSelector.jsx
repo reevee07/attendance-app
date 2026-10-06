@@ -7,23 +7,24 @@ const OPTIONS = [
   { value: 'secondHalf', label: 'Second Half', icon: Sunset },
 ];
 
-/**
- * Part 8: exactly 3 mutually-exclusive pill buttons. The parent owns
- * the selected value (controlled component) - defaults to 'full'
- * wherever it's first used in LeavePage.
- */
-export default function DayTypeSelector({ value, onChange }) {
+export default function DayTypeSelector({ value, onChange, singleDayOnly }) {
   return (
-    <div className="flex gap-1">
+    <div className="flex gap-2">
       {OPTIONS.map(({ value: optValue, label, icon: Icon }) => {
         const active = value === optValue;
+        const disabled = optValue !== 'full' && !singleDayOnly;
         return (
           <button
             key={optValue}
             type="button"
+            disabled={disabled}
             onClick={() => onChange(optValue)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-2 py-2 text-xs font-medium transition ${
-              active ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium transition ${
+              disabled
+                ? 'cursor-not-allowed bg-gray-50 text-gray-300'
+                : active
+                ? 'bg-brand-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             <Icon size={14} />

@@ -1,26 +1,41 @@
-const mongoose = require('mongoose');
-const Leave = require('./leave.model');
-const LeaveBalance = require('../leaveBalance/leaveBalance.model');
+const mongoose = require("mongoose");
+const Leave = require("./leave.model");
+const LeaveBalance = require("../leaveBalance/leaveBalance.model");
 
 // Types with no real balance to check against (Part 4: Leave Without Pay
 // is never balance-checked). Comp Off/Special/Casual/Sick/Earn all go
 // through the normal available-balance check.
-const NO_BALANCE_CHECK_TYPES = ['leaveWithoutPay'];
+const NO_BALANCE_CHECK_TYPES = ["leaveWithoutPay"];
 
-async function requestLeave(employeeId, { date, toDate, leaveType, reason }) {
-  if (!date) throw new Error('Start date is required');
-  if (!leaveType) throw new Error('Leave type is required');
+async function requestLeave(
+  employeeId,
+  { date, toDate, leaveType, dayType, reason },
+) {
+  if (!date) throw new Error("Start date is required");
+  if (!leaveType) throw new Error("Leave type is required");
 
   const startDate = new Date(date);
   startDate.setHours(0, 0, 0, 0);
   const endDate = toDate ? new Date(toDate) : new Date(date);
   endDate.setHours(0, 0, 0, 0);
 
-  if (endDate < startDate) throw new Error('End date cannot be before start date');
+  if (endDate < startDate)
+    throw new Error("End date cannot be before start date");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  if (startDate < today) throw new Error('Leave date cannot be in the past');
+  if (startDate < today) throw new Error("Leave date cannot be in the past");
+
+  const resolvedDayType = dayType || "full";
+  const isHalfDay = resolvedDayType !== "full";
+
+  // Half-day only makes sense for a single date - matches every example
+  // in the spec, and avoids ambiguity over which day in a range is "half".
+  if (isHalfDay && startDate.getTime() !== endDate.getTime()) {
+    throw new Error(
+      "First Half / Second Half can only be selected for a single date",
+    );
+  }
 
   // Build one entry per calendar day in the range (inclusive)
   const days = [];
@@ -28,17 +43,29 @@ async function requestLeave(employeeId, { date, toDate, leaveType, reason }) {
     days.push(new Date(d));
   }
 
+  const perDayDuration = isHalfDay ? 0.5 : 1;
+  const totalDuration = days.length * perDayDuration;
+
   // Block if any day in the range already has a pending request
-  const existing = await Leave.findOne({ employeeId, status: 'pending', date: { $in: days } });
-  if (existing) throw new Error('You already have a pending leave request overlapping this date range');
+  const existing = await Leave.findOne({
+    employeeId,
+    status: "pending",
+    date: { $in: days },
+  });
+  if (existing)
+    throw new Error(
+      "You already have a pending leave request overlapping this date range",
+    );
 
   // Part 10: check sufficient balance BEFORE creating any pending records
   // (pending requests already count against balance, same as approved -
   // you can't request more than you have even while awaiting a decision).
   if (!NO_BALANCE_CHECK_TYPES.includes(leaveType)) {
     const available = await getAvailableForType(employeeId, leaveType);
-    if (days.length > available) {
-      throw new Error(`Insufficient balance: ${available} day(s) available, ${days.length} requested`);
+    if (totalDuration > available) {
+      throw new Error(
+        `Insufficient balance: ${available} day(s) available, ${totalDuration} requested`,
+      );
     }
   }
 
@@ -46,23 +73,40 @@ async function requestLeave(employeeId, { date, toDate, leaveType, reason }) {
   // display them as a single "period" instead of separate single-day rows.
   const groupId = new mongoose.Types.ObjectId();
   return Leave.insertMany(
-    days.map((d) => ({ employeeId, date: d, leaveType, reason: reason?.trim(), groupId }))
+    days.map((d) => ({
+      employeeId,
+      date: d,
+      leaveType,
+      dayType: resolvedDayType,
+      duration: perDayDuration,
+      reason: reason?.trim(),
+      groupId,
+    })),
   );
 }
 
 /**
  * Available balance for one leave type, accounting for both already-used
  * AND currently-pending days (so a second pending request can't be
- * approved past the real remaining balance).
+ * approved past the real remaining balance). Sums actual duration, not
+ * document count, so pending half-days only hold back 0.5 each.
  */
 async function getAvailableForType(employeeId, leaveType) {
   const balanceDoc = await LeaveBalance.findOne({ employeeId });
   const allocated = balanceDoc?.[leaveType]?.allocated ?? 0;
   const used = balanceDoc?.[leaveType]?.used ?? 0;
 
-  const pendingCount = await Leave.countDocuments({ employeeId, leaveType, status: 'pending' });
+  const pending = await Leave.find({
+    employeeId,
+    leaveType,
+    status: "pending",
+  }).select("duration");
+  const pendingDuration = pending.reduce(
+    (sum, l) => sum + (l.duration ?? 1),
+    0,
+  );
 
-  return allocated - used - pendingCount;
+  return allocated - used - pendingDuration;
 }
 
 async function listMine(employeeId) {
@@ -70,22 +114,22 @@ async function listMine(employeeId) {
 }
 
 async function listPending() {
-  return Leave.find({ status: 'pending' })
+  return Leave.find({ status: "pending" })
     .sort({ createdAt: -1 })
-    .populate('employeeId', 'name email');
+    .populate("employeeId", "name email");
 }
 
 async function decide(leaveId, adminId, decision) {
-  if (!['approved', 'rejected'].includes(decision)) {
-    throw new Error('Decision must be approved or rejected');
+  if (!["approved", "rejected"].includes(decision)) {
+    throw new Error("Decision must be approved or rejected");
   }
 
   const leave = await Leave.findById(leaveId);
-  if (!leave) throw new Error('Leave request not found');
+  if (!leave) throw new Error("Leave request not found");
 
   // Guard against double-deduction if this is somehow decided twice -
   // only act on a transition OUT of 'pending'.
-  const wasPending = leave.status === 'pending';
+  const wasPending = leave.status === "pending";
 
   leave.status = decision;
   leave.decidedBy = adminId;
@@ -94,13 +138,18 @@ async function decide(leaveId, adminId, decision) {
 
   // Deduct from the balance only when approving, only once, and only for
   // types that actually track a balance (Part 4: Leave Without Pay never
-  // deducts anything).
-  if (wasPending && decision === 'approved' && !NO_BALANCE_CHECK_TYPES.includes(leave.leaveType)) {
-    const field = leave.leaveType === 'compOff' ? 'compOff.used' : `${leave.leaveType}.used`;
+  // deducts anything). Deducts leave.duration (0.5 or 1), not a flat 1.
+  if (
+    wasPending &&
+    decision === "approved" &&
+    leave.leaveType && // guard: older records created before leaveType existed have none - skip rather than write a junk field
+    !NO_BALANCE_CHECK_TYPES.includes(leave.leaveType)
+  ) {
+    const field = `${leave.leaveType}.used`;
     await LeaveBalance.findOneAndUpdate(
       { employeeId: leave.employeeId },
-      { $inc: { [field]: 1 } }, // each Leave doc = 1 day (half-day not yet tracked on the backend)
-      { upsert: true }
+      { $inc: { [field]: leave.duration ?? 1 } },
+      { upsert: true },
     );
   }
 
@@ -113,7 +162,17 @@ async function countApprovedForDate(dateStr) {
   const nextDay = new Date(targetDate);
   nextDay.setDate(nextDay.getDate() + 1);
 
-  return Leave.countDocuments({ status: 'approved', date: { $gte: targetDate, $lt: nextDay } });
+  return Leave.countDocuments({
+    status: "approved",
+    date: { $gte: targetDate, $lt: nextDay },
+  });
 }
 
-module.exports = { requestLeave, listMine, listPending, decide, countApprovedForDate, getAvailableForType };
+module.exports = {
+  requestLeave,
+  listMine,
+  listPending,
+  decide,
+  countApprovedForDate,
+  getAvailableForType,
+};

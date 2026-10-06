@@ -113,7 +113,7 @@ export default function LeavePage() {
     setSubmitting(true);
     setMessage(null);
     try {
-      const created = await leaveService.requestLeave({ date: fromDate, toDate, leaveType });
+      const created = await leaveService.requestLeave({ date: fromDate, toDate, leaveType, dayType });
       const dayCount = Array.isArray(created) ? created.length : 1;
       setMessage({
         type: 'success',
@@ -157,6 +157,7 @@ export default function LeavePage() {
 
   return (
     <div className="mx-auto max-w-md px-4 pt-6">
+
       <LeaveBalanceSection balance={balance} leaveHistoryCount={myLeaves.length} />
 
       <form onSubmit={handleSubmit} className="mb-6 space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -173,6 +174,7 @@ export default function LeavePage() {
               onChange={(e) => {
                 setFromDate(e.target.value);
                 if (toDate < e.target.value) setToDate(e.target.value);
+                if (toDate !== e.target.value) setDayType('full');
               }}
               className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
             />
@@ -184,7 +186,10 @@ export default function LeavePage() {
               required
               min={fromDate}
               value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                if (fromDate !== e.target.value) setDayType('full');
+              }}
               className="w-full rounded-full border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
@@ -195,10 +200,11 @@ export default function LeavePage() {
         <div>
           <LeaveTypeDropdown value={leaveType} onChange={setLeaveType} balance={balance} />
         </div>
+        <DayTypeSelector value={dayType} onChange={setDayType} singleDayOnly={fromDate === toDate} />
 
-        <DayTypeSelector value={dayType} onChange={setDayType} />
-
-
+        <p className="text-xs text-gray-500">
+          Requested duration: <span className="font-semibold text-gray-700">{duration} day{duration !== 1 ? 's' : ''}</span>
+        </p>
 
         {message && (
           <p className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
