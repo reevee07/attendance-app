@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { UserCheck, CalendarX, Users, Building2 } from 'lucide-react';
-import StatCard from '../../components/admin/StatCard.jsx';
+import { Sparkles, User, UserX, Users, Building2, ShieldCheck, Box } from 'lucide-react';
+import LiveRing from '../../components/admin/LiveRing.jsx';
 import NotificationPanel from '../../components/admin/NotificationPanel.jsx';
 import PunchHistoryPanel from '../../components/admin/PunchHistoryPanel.jsx';
 import Loader from '../../components/common/Loader.jsx';
@@ -9,33 +8,44 @@ import * as attendanceService from '../../services/attendanceService';
 import * as employeeService from '../../services/employeeService';
 import * as leaveService from '../../services/leaveService';
 
-const OFFICE_THEMES = ['purple', 'cyan', 'pink'];
+const THEMES = {
+  green: { color: '#16a34a', track: '#bbf7d0', bg: 'bg-green-50', border: 'border-green-200' },
+  red: { color: '#ef4444', track: '#fecaca', bg: 'bg-red-50', border: 'border-red-200' },
+  blue: { color: '#2563eb', track: '#bfdbfe', bg: 'bg-blue-50', border: 'border-blue-200' },
+  purple: { color: '#9333ea', track: '#e9d5ff', bg: 'bg-purple-50', border: 'border-purple-200' },
+  amber: { color: '#f59e0b', track: '#fde68a', bg: 'bg-amber-50', border: 'border-amber-200' },
+  cyan: { color: '#06b6d4', track: '#a5f3fc', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+};
+
+const OFFICE_THEMES = [
+  { Icon: Building2, ...THEMES.purple },
+  { Icon: ShieldCheck, ...THEMES.amber },
+  { Icon: Box, ...THEMES.cyan },
+];
+
 
 export default function DashboardHome() {
   const [officeStats, setOfficeStats] = useState([]);
   const [totalEmployees, setTotalEmployees] = useState(0);
   const [presentToday, setPresentToday] = useState(0);
   const [onLeaveToday, setOnLeaveToday] = useState(0);
-  const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadDashboard() {
       setLoading(true);
       try {
-        const [offices, employees, summary, leaveCount, trend] = await Promise.all([
+        const [offices, employees, summary, leaveCount] = await Promise.all([
           attendanceService.byOffice(),
           employeeService.listEmployees({ status: 'active' }),
           attendanceService.dailySummary(),
           leaveService.todayLeaveCount(),
-          attendanceService.trend(7),
         ]);
 
         setOfficeStats(offices);
         setTotalEmployees(employees.length);
         setPresentToday(summary.length);
         setOnLeaveToday(leaveCount);
-        setTrendData(trend);
       } finally {
         setLoading(false);
       }
@@ -46,55 +56,40 @@ export default function DashboardHome() {
 
   if (loading) return <Loader />;
 
-  const statCards = [
-    { label: 'Present Employee', value: presentToday, total: totalEmployees, theme: 'green', icon: UserCheck },
-    { label: 'On Leave Employee', value: onLeaveToday, total: totalEmployees, theme: 'orange', icon: CalendarX },
-    { label: 'Total Employee', value: totalEmployees, total: totalEmployees, theme: 'blue', icon: Users },
+  const rings = [
+    { label: 'Present Employee', value: presentToday, total: totalEmployees, Icon: User, ...THEMES.green },
+    { label: 'On Leave Employee', value: onLeaveToday, total: totalEmployees, Icon: UserX, ...THEMES.red },
+    { label: 'Total Employee', value: totalEmployees, total: totalEmployees, Icon: Users, ...THEMES.blue },
     ...officeStats.slice(0, 3).map((office, i) => ({
       label: office.officeName,
       value: office.presentToday,
       total: office.totalEmployees,
-      theme: OFFICE_THEMES[i],
-      icon: Building2,
+      ...OFFICE_THEMES[i],
     })),
   ];
 
   return (
-  <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-    {/* Top-left: bar graph */}
-    <div className="flex flex-col rounded-2xl border border-gray-200 bg-blue-100/50 p-4">
-      <h2 className="mb-3 text-sm font-semibold text-gray-900">Attendance</h2>
-      <div className="relative min-h-[300px] flex-1">
-        <div className="absolute inset-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: 12 }}
-                tickFormatter={(d) => new Date(d).toLocaleDateString([], { day: 'numeric', month: 'short' })}
-              />
-              <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
-              <Tooltip labelFormatter={(d) => new Date(d).toLocaleDateString()} />
-              <Bar dataKey="count" fill="#2f4bc4" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+    <div className="space-y-6">
+      {/* Welcome banner */}
+      <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-400 px-6 py-8 text-white shadow-sm">
+        <Sparkles size={28} className="shrink-0 text-white/80" />
+        <div>
+          <p className="text-lg font-semibold">Welcome back!</p>
+          <p className="text-sm text-white/80">Here's what's happening with your team today.</p>
         </div>
       </div>
-    </div>
 
-    {/* Top-right: six stat cards, 2 columns x 3 rows */}
-    <div className="grid grid-cols-1 content-start gap-3 sm:grid-cols-2">
-      {statCards.map((card) => (
-        <StatCard key={card.label} {...card} compact />
+      {/* Stat rings */}
+      <div className="grid grid-cols-2 gap-3 rounded-2xl border border-gray-200 bg-white p-4 sm:grid-cols-3 lg:grid-cols-6">        {rings.map((ring) => (
+        <LiveRing key={ring.label} {...ring} />
       ))}
+      </div>
+
+      {/* Attendance Board + Leave Request, side by side */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <PunchHistoryPanel />
+        <NotificationPanel />
+      </div>
     </div>
-
-    {/* Bottom-left: Leave Requests */}
-    <NotificationPanel />
-
-    {/* Bottom-right: Attendance Punch History */}
-    <PunchHistoryPanel />
-  </div>
-);
+  );
 }

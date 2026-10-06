@@ -116,7 +116,7 @@ async function listMine(employeeId) {
 async function listPending() {
   return Leave.find({ status: "pending" })
     .sort({ createdAt: -1 })
-    .populate("employeeId", "name email");
+    .populate("employeeId", "name email photoUrl");
 }
 
 async function decide(leaveId, adminId, decision) {
