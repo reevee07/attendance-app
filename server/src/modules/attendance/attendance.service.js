@@ -3,7 +3,10 @@ const Office = require('../office/office.model');
 const Employee = require('../employee/employee.model');
 const { distanceInMeters } = require('../../utils/geo');
 
-
+/**
+ * Determines whether the next punch for this employee today should be
+ * 'in' or 'out'. First punch of the day is always 'in', then it alternates.
+ */
 async function determineNextType(employeeId) {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
@@ -18,9 +21,9 @@ async function determineNextType(employeeId) {
 }
 
 /**
- * Self-punch: employee punches their own attendance with geolocation + photo.
+ * Self-punch: employee punches their own attendance with geolocation.
  */
-async function selfPunch({ employeeId, latitude, longitude, address }) {
+async function selfPunch({ employeeId, latitude, longitude }) {
   if (latitude === undefined || longitude === undefined) {
     throw new Error('Location is required to punch attendance');
   }
@@ -44,15 +47,12 @@ async function selfPunch({ employeeId, latitude, longitude, address }) {
     timestamp: new Date(),
     latitude,
     longitude,
-    address,
     distanceFromOffice,
     punchedBy: 'self',
   });
 
   return record;
 }
-
-
 
 /**
  * Admin-punch: admin punches on behalf of any employee. No geolocation, no photo.
@@ -103,20 +103,27 @@ async function getDailySummary(dateStr) {
     { $match: { timestamp: { $gte: startOfDay, $lte: endOfDay } } },
     { $sort: { timestamp: 1 } },
     {
+      // Collect every punch for the employee into one array, in time order,
+      // so we can pull out the specific IN and OUT records afterward -
+      // $first/$last alone can't filter by type, only by position.
       $group: {
         _id: '$employeeId',
-        // The first document per employee, after sorting by time, is always
-        // the 'in' punch (first punch of the day is always 'in' by design) -
-        // so $first safely gives us that punch's own coordinates/address.
-        firstIn: { $first: '$timestamp' },
-        latitude: { $first: '$latitude' },
-        longitude: { $first: '$longitude' },
-        address: { $first: '$address' },
-        lastOut: {
-          $max: { $cond: [{ $eq: ['$type', 'out'] }, '$timestamp', null] },
+        punches: {
+          $push: { type: '$type', timestamp: '$timestamp', latitude: '$latitude', longitude: '$longitude', address: '$address' },
         },
         totalPunches: { $sum: 1 },
         hasAdminEntry: { $max: { $eq: ['$punchedBy', 'admin'] } },
+      },
+    },
+    {
+      $addFields: {
+        // First punch of the day is always 'in' by design (determineNextType),
+        // so position 0 is safely the first-in punch.
+        firstInPunch: { $arrayElemAt: ['$punches', 0] },
+        // Last 'out' punch specifically - filter to just 'out' punches, take the last one.
+        lastOutPunch: {
+          $arrayElemAt: [{ $filter: { input: '$punches', as: 'p', cond: { $eq: ['$$p.type', 'out'] } } }, -1],
+        },
       },
     },
     {
@@ -134,11 +141,14 @@ async function getDailySummary(dateStr) {
         name: '$employee.name',
         email: '$employee.email',
         employeeCode: '$employee.employeeCode',
-        firstIn: 1,
-        lastOut: 1,
-        latitude: 1,
-        longitude: 1,
-        address: 1,
+        firstIn: '$firstInPunch.timestamp',
+        inLatitude: '$firstInPunch.latitude',
+        inLongitude: '$firstInPunch.longitude',
+        inAddress: '$firstInPunch.address',
+        lastOut: '$lastOutPunch.timestamp',
+        outLatitude: '$lastOutPunch.latitude',
+        outLongitude: '$lastOutPunch.longitude',
+        outAddress: '$lastOutPunch.address',
         totalPunches: 1,
         hasAdminEntry: 1,
         _id: 0,
@@ -149,6 +159,7 @@ async function getDailySummary(dateStr) {
 
   return summary;
 }
+
 /**
  * Distinct employees present (had a punch) per day, for the last `days` days.
  * Used to plot the admin's attendance trend graph.

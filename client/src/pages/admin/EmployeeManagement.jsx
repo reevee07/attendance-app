@@ -1,31 +1,76 @@
-import React, { useEffect, useState } from 'react';
-import EmployeeCard from '../../components/admin/EmployeeCard.jsx';
+import React, { useEffect, useMemo, useState } from 'react';
 import AdminPunchModal from '../../components/admin/AdminPunchModal.jsx';
 import Modal from '../../components/common/Modal.jsx';
 import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
+
 import * as employeeService from '../../services/employeeService';
 import * as officeService from '../../services/officeService';
-import { UserPlus } from 'lucide-react';
 
-const emptyForm = { name: '', email: '', password: '', employeeCode: '', designation: '', contactNumber: '', role: 'user', officeId: '' };
+import {
+  UserPlus,
+  Users,
+  UserCheck,
+  PauseCircle,
+  BriefcaseBusiness,
+  Search,
+  Mail,
+  Phone,
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  MoreVertical,
+  Pencil,
+  ChevronRight,
+} from 'lucide-react';
+
+
+const emptyForm = {
+  name: '',
+  email: '',
+  password: '',
+  employeeCode: '',
+  designation: '',
+  contactNumber: '',
+  role: 'user',
+  officeId: '',
+};
+
 
 export default function EmployeeManagement() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [punchTarget, setPunchTarget] = useState(null);
+
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+
   const [formError, setFormError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
   const [offices, setOffices] = useState([]);
   const [newOfficeName, setNewOfficeName] = useState('');
   const [addingOffice, setAddingOffice] = useState(false);
 
+  // Page filters
+  const [search, setSearch] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('');
+
+  // Three-dot menu
+  const [openMenu, setOpenMenu] = useState(null);
+
+
+  /* -------------------------------------------------------
+     LOAD EMPLOYEES
+  ------------------------------------------------------- */
+
   async function loadEmployees() {
     setLoading(true);
+
     try {
       const data = await employeeService.listEmployees();
       setEmployees(data);
@@ -34,21 +79,50 @@ export default function EmployeeManagement() {
     }
   }
 
+
+  /* -------------------------------------------------------
+     LOAD OFFICES
+  ------------------------------------------------------- */
+
   async function loadOffices() {
-  const data = await officeService.listOffices();
-  setOffices(data);
- }
+    try {
+      const data = await officeService.listOffices();
+      setOffices(data);
+    } catch {
+      setOffices([]);
+    }
+  }
+
 
   useEffect(() => {
-  loadEmployees();
-  loadOffices();
+    loadEmployees();
+    loadOffices();
   }, []);
- 
+
+
+  /* -------------------------------------------------------
+     PHOTO
+  ------------------------------------------------------- */
 
   function resetPhotoState() {
     setPhotoFile(null);
     setPhotoPreview(null);
   }
+
+
+  function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+
+  /* -------------------------------------------------------
+     CREATE EMPLOYEE
+  ------------------------------------------------------- */
 
   function openCreateForm() {
     setForm(emptyForm);
@@ -57,88 +131,618 @@ export default function EmployeeManagement() {
     setFormOpen(true);
   }
 
-  function openEditForm(employee) {
-  setForm({
-    _id: employee._id,
-    name: employee.name,
-    email: employee.email,
-    employeeCode: employee.employeeCode || '',
-    designation: employee.designation || '',
-    contactNumber: employee.contactNumber || '',
-    role: employee.role,
-    officeId: employee.officeId?._id || employee.officeId || '',
-    password: '',
-  });
-  setPhotoFile(null);
-  setPhotoPreview(employee.photoUrl || null);
-  setFormError(null);
-  setFormOpen(true);
-}
 
-  function handlePhotoChange(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+  /* -------------------------------------------------------
+     EDIT EMPLOYEE
+  ------------------------------------------------------- */
+
+  function openEditForm(employee) {
+    setForm({
+      _id: employee._id,
+      name: employee.name,
+      email: employee.email,
+      employeeCode: employee.employeeCode || '',
+      designation: employee.designation || '',
+      contactNumber: employee.contactNumber || '',
+      role: employee.role,
+      officeId: employee.officeId?._id || employee.officeId || '',
+      password: '',
+    });
+
+    setPhotoFile(null);
+    setPhotoPreview(employee.photoUrl || null);
+
+    setFormError(null);
+    setFormOpen(true);
+    setOpenMenu(null);
   }
+
+
+  /* -------------------------------------------------------
+     ADD OFFICE
+  ------------------------------------------------------- */
 
   async function handleAddOffice() {
-  if (!newOfficeName.trim()) return;
-  setAddingOffice(true);
-  try {
-    const office = await officeService.createOffice({ name: newOfficeName.trim() });
-    setOffices((prev) => [...prev, office]);
-    setForm((prev) => ({ ...prev, officeId: office._id }));
-    setNewOfficeName('');
-  } finally {
-    setAddingOffice(false);
+    if (!newOfficeName.trim()) return;
+
+    setAddingOffice(true);
+
+    try {
+      const office = await officeService.createOffice({
+        name: newOfficeName.trim(),
+      });
+
+      setOffices((prev) => [...prev, office]);
+
+      setForm((prev) => ({
+        ...prev,
+        officeId: office._id,
+      }));
+
+      setNewOfficeName('');
+    } finally {
+      setAddingOffice(false);
+    }
   }
-}
+
+
+  /* -------------------------------------------------------
+     FORM SUBMIT
+  ------------------------------------------------------- */
 
   async function handleFormSubmit(e) {
     e.preventDefault();
+
     setSubmitting(true);
     setFormError(null);
+
     try {
       if (form._id) {
-  const { _id, ...updates } = form;
-  await employeeService.updateEmployee(_id, updates, photoFile);
-} else {
-        await employeeService.createEmployee(form, photoFile);
+        const { _id, ...updates } = form;
+
+        await employeeService.updateEmployee(
+          _id,
+          updates,
+          photoFile
+        );
+      } else {
+        await employeeService.createEmployee(
+          form,
+          photoFile
+        );
       }
+
       setFormOpen(false);
       resetPhotoState();
-      loadEmployees();
+
+      await loadEmployees();
     } catch (err) {
-      setFormError(err.response?.data?.message || 'Failed to save employee');
+      setFormError(
+        err.response?.data?.message ||
+        'Failed to save employee'
+      );
     } finally {
       setSubmitting(false);
     }
   }
 
-  return (
-  
-    <div>
-      <div className="mb-2 mt-20 flex items-center justify-between">
 
-        
-        <Button onClick={openCreateForm}><UserPlus size={18} />Add Employee</Button>
+  /* -------------------------------------------------------
+     HELPERS
+  ------------------------------------------------------- */
+
+  function getOffice(employee) {
+    if (!employee.officeId) return null;
+
+    if (typeof employee.officeId === 'object') {
+      return employee.officeId;
+    }
+
+    return offices.find(
+      (office) => office._id === employee.officeId
+    );
+  }
+
+
+  function getOfficeName(employee) {
+    const office = getOffice(employee);
+
+    return office?.name || 'No office';
+  }
+
+
+  function getEmployeeCode(employee) {
+    return employee.employeeCode || '—';
+  }
+
+
+  function getInitials(name = '') {
+    return name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+
+  /* -------------------------------------------------------
+     FILTERED EMPLOYEES
+  ------------------------------------------------------- */
+
+  const filteredEmployees = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    return employees.filter((employee) => {
+      const officeName = getOfficeName(employee);
+
+      const matchesSearch =
+        !query ||
+        employee.name?.toLowerCase().includes(query) ||
+        employee.email?.toLowerCase().includes(query) ||
+        employee.employeeCode?.toLowerCase().includes(query) ||
+        employee.contactNumber?.toLowerCase().includes(query) ||
+        officeName?.toLowerCase().includes(query);
+
+      const matchesDepartment =
+        !departmentFilter ||
+        getOffice(employee)?._id === departmentFilter;
+
+      return matchesSearch && matchesDepartment;
+    });
+  }, [
+    employees,
+    offices,
+    search,
+    departmentFilter,
+  ]);
+
+
+  /* -------------------------------------------------------
+     KPI DATA
+  ------------------------------------------------------- */
+
+  const totalEmployees = employees.length;
+
+  const activeEmployees = employees.filter(
+    (employee) =>
+      employee.status !== 'inactive'
+  ).length;
+
+  const onLeaveEmployees = employees.filter(
+    (employee) =>
+      employee.status === 'on_leave' ||
+      employee.status === 'leave'
+  ).length;
+
+  const departmentCount = offices.length;
+
+
+  /* -------------------------------------------------------
+     RENDER
+  ------------------------------------------------------- */
+
+  return (
+    <div className="min-h-screen">
+
+      {/* =====================================================
+          PAGE HEADER
+      ===================================================== */}
+
+      <div className="mb-6 flex items-start justify-between">
+
+        <div className="flex items-center gap-4">
+
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <Users
+              size={28}
+              strokeWidth={2.2}
+            />
+          </div>
+
+          <div>
+            <h1 className="text-[30px] font-bold tracking-tight text-[#12356F]">
+              Employees
+            </h1>
+
+          </div>
+
+        </div>
+
+
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="flex h-12 items-center gap-2 rounded-xl bg-[#1268F3] px-6 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(18,104,243,0.25)] transition hover:bg-[#075CE0]"
+        >
+          <UserPlus size={19} />
+          Add Employee
+        </button>
+
       </div>
 
-      {loading ? (
-        <Loader />
-      ) : (
-        <div className="space-y-2">
-          {employees.map((emp) => (
-            <EmployeeCard
-              key={emp._id}
-              employee={emp}
-              onPunchClick={setPunchTarget}
-              onEditClick={openEditForm}
-            />
-          ))}
+
+      {/* =====================================================
+          KPI CARDS
+      ===================================================== */}
+
+      <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4 xl:grid-cols-4">
+
+        {/* Total Employees */}
+        <div className="group flex items-center justify-between rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white px-5 py-4 shadow-sm">
+
+          <div className="flex items-center gap-4">
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+              <Users size={23} />
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-[#6685B5]">
+                Total Employees
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-[#12356F]">
+                {totalEmployees}
+              </p>
+            </div>
+
+          </div>
+
+          <ChevronRight
+            size={21}
+            className="text-blue-600 transition group-hover:translate-x-1"
+          />
+
         </div>
+
+
+        {/* Active */}
+        <div className="flex items-center gap-4 rounded-xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white px-5 py-4 shadow-sm">
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <UserCheck size={23} />
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-[#6685B5]">
+              Active
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-[#12356F]">
+              {activeEmployees}
+            </p>
+          </div>
+
+        </div>
+
+
+        {/* On Leave */}
+        <div className="flex items-center gap-4 rounded-xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white px-5 py-4 shadow-sm">
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-100 text-orange-500">
+            <PauseCircle size={23} />
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-[#6685B5]">
+              On Leave
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-[#12356F]">
+              {onLeaveEmployees}
+            </p>
+          </div>
+
+        </div>
+
+
+        {/* Departments */}
+        <div className="flex items-center gap-4 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50 to-white px-5 py-4 shadow-sm">
+
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 text-purple-600">
+            <BriefcaseBusiness size={23} />
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-[#6685B5]">
+              Departments
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-[#12356F]">
+              {departmentCount}
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          SEARCH + FILTER
+      ===================================================== */}
+
+      <div className="mb-4 flex flex-col gap-3 md:flex-row">
+
+        {/* Search */}
+        <div className="relative flex-1">
+
+          <Search
+            size={19}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400"
+          />
+
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search employee by name, email or employee ID..."
+            className="h-12 w-full rounded-xl border border-blue-100 bg-white pl-11 pr-4 text-sm text-[#12356F] shadow-sm outline-none transition placeholder:text-[#7391BD] focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          />
+
+        </div>
+
+
+        {/* Department filter */}
+        <div className="relative w-full md:w-56">
+
+          <select
+            value={departmentFilter}
+            onChange={(e) =>
+              setDepartmentFilter(e.target.value)
+            }
+            className="h-12 w-full appearance-none rounded-xl border border-blue-100 bg-white px-4 pr-10 text-sm font-medium text-[#244A80] shadow-sm outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="">
+              All Departments
+            </option>
+
+            {offices.map((office) => (
+              <option
+                key={office._id}
+                value={office._id}
+              >
+                {office.name}
+              </option>
+            ))}
+          </select>
+
+          <ChevronDown
+            size={17}
+            className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-blue-500"
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================================
+          EMPLOYEE TABLE
+      ===================================================== */}
+
+      {loading ? (
+
+        <div className="flex min-h-[300px] items-center justify-center rounded-2xl bg-white">
+          <Loader />
+        </div>
+
+      ) : (
+
+        <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+
+          {/* Table header */}
+          <div className="grid grid-cols-[2.1fr_2fr_2fr_1fr] items-center bg-[#F3F8FF] px-5 py-3 text-xs font-semibold text-[#5276AA]">
+
+            <div>
+              Employee
+            </div>
+
+            <div>
+              Contact
+            </div>
+
+            <div>
+              Department
+            </div>
+
+            <div className="text-right pr-4">
+              Actions
+            </div>
+
+          </div>
+
+
+          {/* Rows */}
+          <div className="divide-y divide-blue-50">
+
+            {filteredEmployees.length === 0 ? (
+
+              <div className="flex min-h-[220px] flex-col items-center justify-center px-6 text-center">
+
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-400">
+                  <Users size={25} />
+                </div>
+
+                <p className="font-semibold text-[#12356F]">
+                  No employees found
+                </p>
+
+                <p className="mt-1 text-sm text-gray-400">
+                  Try changing your search or department filter.
+                </p>
+
+              </div>
+
+            ) : (
+
+              filteredEmployees.map((employee) => {
+
+                const office = getOffice(employee);
+
+                return (
+                  <div
+                    key={employee._id}
+                    className="group grid min-h-[76px] grid-cols-[2.1fr_2fr_2fr_1fr] items-center px-5 transition hover:bg-[#F8FBFF]"
+                  >
+
+                    {/* Employee */}
+                    <div className="flex min-w-0 items-center gap-3">
+
+                      {employee.photoUrl ? (
+
+                        <img
+                          src={employee.photoUrl}
+                          alt={employee.name}
+                          className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white shadow-sm"
+                        />
+
+                      ) : (
+
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-sm font-semibold text-gray-600 ring-2 ring-white">
+                          {getInitials(employee.name)}
+                        </div>
+
+                      )}
+
+                      <div className="min-w-0">
+
+                        <p className="truncate text-sm font-semibold text-[#12356F]">
+                          {employee.name}
+                        </p>
+
+                        <p className="mt-0.5 truncate text-xs text-[#6D8AB7]">
+                          {employee.designation || 'Employee'}
+                        </p>
+
+                      </div>
+
+                    </div>
+
+
+                    {/* Contact */}
+                    <div className="min-w-0 space-y-1">
+
+                      <div className="flex items-center gap-2">
+
+                        <Mail
+                          size={14}
+                          className="shrink-0 text-[#6686B6]"
+                        />
+
+                        <span className="truncate text-xs text-[#6686B6]">
+                          {employee.email}
+                        </span>
+
+                      </div>
+
+                      <div className="flex items-center gap-2">
+
+                        <Phone
+                          size={14}
+                          className="shrink-0 text-[#6686B6]"
+                        />
+
+                        <span className="text-xs text-[#6686B6]">
+                          {employee.contactNumber || '—'}
+                        </span>
+
+                      </div>
+
+                    </div>
+
+                    {/* Department */}
+                    <div className="flex items-center gap-3">
+
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-500">
+                        <Building2 size={16} />
+                      </div>
+
+                      <div>
+                        <span className="text-sm font-semibold text-blue-600">
+                          {office?.name || 'No office'}
+                        </span>
+
+                        <p className="mt-1 text-xs text-[#4F709F]">
+                          {getEmployeeCode(employee)}
+                        </p>
+                      </div>
+
+                    </div>
+
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-3">
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPunchTarget(employee)
+                        }
+                        className="rounded-full bg-[#1268F3] px-6 py-2.5 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(18,104,243,0.2)] transition hover:bg-[#075CE0]"
+                      >
+                        Punch
+                      </button>
+
+
+                      {/* Three dots */}
+                      <div className="relative">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenMenu(
+                              openMenu === employee._id
+                                ? null
+                                : employee._id
+                            )
+                          }
+                          className="flex h-9 w-9 items-center justify-center rounded-full text-[#12356F] transition hover:bg-blue-50"
+                        >
+                          <MoreVertical size={19} />
+                        </button>
+
+
+                        {openMenu === employee._id && (
+
+                          <div className="absolute right-0 top-10 z-50 w-32 overflow-hidden rounded-xl border border-blue-100 bg-white p-1 shadow-[0_8px_25px_rgba(18,53,111,0.15)]">
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openEditForm(employee)
+                              }
+                              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-[#12356F] hover:bg-blue-50"
+                            >
+                              <Pencil size={14} />
+                              Edit
+                            </button>
+
+                          </div>
+
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })
+
+            )}
+
+          </div>
+
+        </div>
+
       )}
+
+
+      {/* =====================================================
+          PUNCH MODAL
+      ===================================================== */}
 
       <AdminPunchModal
         employee={punchTarget}
@@ -147,111 +751,258 @@ export default function EmployeeManagement() {
         onSuccess={loadEmployees}
       />
 
-      <Modal open={formOpen} onClose={() => setFormOpen(false)} title={form._id ? 'Edit Employee' : 'Add Employee'}>
-        <form onSubmit={handleFormSubmit} className="space-y-3">
-          <div className="flex items-center gap-3">
+
+      {/* =====================================================
+          ADD / EDIT EMPLOYEE MODAL
+      ===================================================== */}
+
+      <Modal
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        title={
+          form._id
+            ? 'Edit Employee'
+            : 'Add Employee'
+        }
+      >
+
+        <form
+          onSubmit={handleFormSubmit}
+          className="space-y-4"
+        >
+
+          {/* Photo */}
+          <div className="flex items-center gap-4">
+
             {photoPreview ? (
-              <img src={photoPreview} alt="Preview" className="h-14 w-14 rounded-full object-cover" />
+
+              <img
+                src={photoPreview}
+                alt="Preview"
+                className="h-16 w-16 rounded-full object-cover ring-2 ring-blue-100"
+              />
+
             ) : (
-              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
+
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
                 No photo
               </div>
+
             )}
-            <label className="cursor-pointer text-sm font-medium text-brand-600 hover:text-brand-700">
-              {photoPreview ? 'Change photo' : 'Upload photo'}
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+
+            <label className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700">
+
+              {photoPreview
+                ? 'Change photo'
+                : 'Upload photo'}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                className="hidden"
+              />
+
             </label>
+
           </div>
 
+
+          {/* Name */}
           <input
             required
             placeholder="Full name"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                name: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+
+
+          {/* Email */}
           <input
             required
             type="email"
             placeholder="Email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                email: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+
+
+          {/* Password */}
           <input
-          required={!form._id}
-          type="password"
-          placeholder={form._id ? 'New password (leave blank to keep current)' : 'Temporary password'}
-          value={form.password}
-          onChange={(e) => setForm({ ...form, password: e.target.value })}
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            required={!form._id}
+            type="password"
+            placeholder={
+              form._id
+                ? 'New password (leave blank to keep current)'
+                : 'Temporary password'
+            }
+            value={form.password}
+            onChange={(e) =>
+              setForm({
+                ...form,
+                password: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+
+
+          {/* Employee code */}
           <input
             required
             placeholder="Employee code"
             value={form.employeeCode}
-            onChange={(e) => setForm({ ...form, employeeCode: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                employeeCode: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+
+
+          {/* Designation */}
           <input
             placeholder="Designation"
             value={form.designation}
-            onChange={(e) => setForm({ ...form, designation: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                designation: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
+
+
+          {/* Contact */}
           <input
             placeholder="Contact Number"
             value={form.contactNumber}
-            onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                contactNumber: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           />
-          <div>
-          <select
-    value={form.officeId}
-    onChange={(e) => setForm({ ...form, officeId: e.target.value })}
-    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-   >
-    <option value="">No office assigned</option>
-    {offices.map((office) => (
-      <option key={office._id} value={office._id}>
-        {office.name}
-      </option>
-    ))}
-   </select>
-   <div className="mt-2 flex gap-2">
-    <input
-      placeholder="New office name (e.g. Kelax)"
-      value={newOfficeName}
-      onChange={(e) => setNewOfficeName(e.target.value)}
-      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
-    />
-    <Button
-      type="button"
-      variant="secondary"
-      loading={addingOffice}
-      onClick={handleAddOffice}
-    >
-      Add
-    </Button>
-     </div>
-  </div>
 
+
+          {/* Office */}
+          <div>
+
+            <select
+              value={form.officeId}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  officeId: e.target.value,
+                })
+              }
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+            >
+
+              <option value="">
+                No office assigned
+              </option>
+
+              {offices.map((office) => (
+
+                <option
+                  key={office._id}
+                  value={office._id}
+                >
+                  {office.name}
+                </option>
+
+              ))}
+
+            </select>
+
+
+            <div className="mt-2 flex gap-2">
+
+              <input
+                placeholder="New office name (e.g. Kelax)"
+                value={newOfficeName}
+                onChange={(e) =>
+                  setNewOfficeName(e.target.value)
+                }
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+
+              <Button
+                type="button"
+                variant="secondary"
+                loading={addingOffice}
+                onClick={handleAddOffice}
+              >
+                Add
+              </Button>
+
+            </div>
+
+          </div>
+
+
+          {/* Role */}
           <select
             value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            onChange={(e) =>
+              setForm({
+                ...form,
+                role: e.target.value,
+              })
+            }
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
           >
-            <option value="user">Employee</option>
-            <option value="admin">Admin</option>
+
+            <option value="user">
+              Employee
+            </option>
+
+            <option value="admin">
+              Admin
+            </option>
+
           </select>
 
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
 
-          <Button type="submit" loading={submitting} className="w-full">
+          {/* Error */}
+          {formError && (
+            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              {formError}
+            </p>
+          )}
+
+
+          {/* Save */}
+          <Button
+            type="submit"
+            loading={submitting}
+            className="w-full"
+          >
             Save
           </Button>
+
         </form>
+
       </Modal>
+
     </div>
   );
 }
