@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminPunchModal from '../../components/admin/AdminPunchModal.jsx';
-import Modal from '../../components/common/Modal.jsx';
-import Button from '../../components/common/Button.jsx';
 import Loader from '../../components/common/Loader.jsx';
 
 import * as employeeService from '../../services/employeeService';
@@ -17,7 +16,6 @@ import {
   Mail,
   Phone,
   Building2,
-  CalendarDays,
   ChevronDown,
   MoreVertical,
   Pencil,
@@ -25,36 +23,15 @@ import {
 } from 'lucide-react';
 
 
-const emptyForm = {
-  name: '',
-  email: '',
-  password: '',
-  employeeCode: '',
-  designation: '',
-  contactNumber: '',
-  role: 'user',
-  officeId: '',
-};
-
-
 export default function EmployeeManagement() {
+  const navigate = useNavigate();
+
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [punchTarget, setPunchTarget] = useState(null);
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [form, setForm] = useState(emptyForm);
-
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-
-  const [formError, setFormError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-
   const [offices, setOffices] = useState([]);
-  const [newOfficeName, setNewOfficeName] = useState('');
-  const [addingOffice, setAddingOffice] = useState(false);
 
   // Page filters
   const [search, setSearch] = useState('');
@@ -98,133 +75,6 @@ export default function EmployeeManagement() {
     loadEmployees();
     loadOffices();
   }, []);
-
-
-  /* -------------------------------------------------------
-     PHOTO
-  ------------------------------------------------------- */
-
-  function resetPhotoState() {
-    setPhotoFile(null);
-    setPhotoPreview(null);
-  }
-
-
-  function handlePhotoChange(e) {
-    const file = e.target.files?.[0];
-
-    if (!file) return;
-
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
-  }
-
-
-  /* -------------------------------------------------------
-     CREATE EMPLOYEE
-  ------------------------------------------------------- */
-
-  function openCreateForm() {
-    setForm(emptyForm);
-    resetPhotoState();
-    setFormError(null);
-    setFormOpen(true);
-  }
-
-
-  /* -------------------------------------------------------
-     EDIT EMPLOYEE
-  ------------------------------------------------------- */
-
-  function openEditForm(employee) {
-    setForm({
-      _id: employee._id,
-      name: employee.name,
-      email: employee.email,
-      employeeCode: employee.employeeCode || '',
-      designation: employee.designation || '',
-      contactNumber: employee.contactNumber || '',
-      role: employee.role,
-      officeId: employee.officeId?._id || employee.officeId || '',
-      password: '',
-    });
-
-    setPhotoFile(null);
-    setPhotoPreview(employee.photoUrl || null);
-
-    setFormError(null);
-    setFormOpen(true);
-    setOpenMenu(null);
-  }
-
-
-  /* -------------------------------------------------------
-     ADD OFFICE
-  ------------------------------------------------------- */
-
-  async function handleAddOffice() {
-    if (!newOfficeName.trim()) return;
-
-    setAddingOffice(true);
-
-    try {
-      const office = await officeService.createOffice({
-        name: newOfficeName.trim(),
-      });
-
-      setOffices((prev) => [...prev, office]);
-
-      setForm((prev) => ({
-        ...prev,
-        officeId: office._id,
-      }));
-
-      setNewOfficeName('');
-    } finally {
-      setAddingOffice(false);
-    }
-  }
-
-
-  /* -------------------------------------------------------
-     FORM SUBMIT
-  ------------------------------------------------------- */
-
-  async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    setSubmitting(true);
-    setFormError(null);
-
-    try {
-      if (form._id) {
-        const { _id, ...updates } = form;
-
-        await employeeService.updateEmployee(
-          _id,
-          updates,
-          photoFile
-        );
-      } else {
-        await employeeService.createEmployee(
-          form,
-          photoFile
-        );
-      }
-
-      setFormOpen(false);
-      resetPhotoState();
-
-      await loadEmployees();
-    } catch (err) {
-      setFormError(
-        err.response?.data?.message ||
-        'Failed to save employee'
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
 
   /* -------------------------------------------------------
@@ -344,7 +194,6 @@ export default function EmployeeManagement() {
             <h1 className="text-[30px] font-bold tracking-tight text-[#12356F]">
               Employees
             </h1>
-
           </div>
 
         </div>
@@ -352,7 +201,7 @@ export default function EmployeeManagement() {
 
         <button
           type="button"
-          onClick={openCreateForm}
+          onClick={() => navigate('/admin/employees/new')}
           className="flex h-12 items-center gap-2 rounded-xl bg-[#1268F3] px-6 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(18,104,243,0.25)] transition hover:bg-[#075CE0]"
         >
           <UserPlus size={19} />
@@ -584,7 +433,13 @@ export default function EmployeeManagement() {
                 return (
                   <div
                     key={employee._id}
-                    className="group grid min-h-[76px] grid-cols-[2.1fr_2fr_2fr_1fr] items-center px-5 transition hover:bg-[#F8FBFF]"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/admin/employees/${employee._id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') navigate(`/admin/employees/${employee._id}`);
+                    }}
+                    className="group grid min-h-[76px] cursor-pointer grid-cols-[2.1fr_2fr_2fr_1fr] items-center px-5 transition hover:bg-[#F8FBFF]"
                   >
 
                     {/* Employee */}
@@ -672,8 +527,12 @@ export default function EmployeeManagement() {
                     </div>
 
 
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3">
+                    {/* Actions (clicks here must not open the profile) */}
+                    <div
+                      className="flex items-center justify-end gap-3"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
 
                       <button
                         type="button"
@@ -711,7 +570,7 @@ export default function EmployeeManagement() {
                             <button
                               type="button"
                               onClick={() =>
-                                openEditForm(employee)
+                                navigate(`/admin/employees/${employee._id}/edit`)
                               }
                               className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-medium text-[#12356F] hover:bg-blue-50"
                             >
@@ -750,258 +609,6 @@ export default function EmployeeManagement() {
         onClose={() => setPunchTarget(null)}
         onSuccess={loadEmployees}
       />
-
-
-      {/* =====================================================
-          ADD / EDIT EMPLOYEE MODAL
-      ===================================================== */}
-
-      <Modal
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        title={
-          form._id
-            ? 'Edit Employee'
-            : 'Add Employee'
-        }
-      >
-
-        <form
-          onSubmit={handleFormSubmit}
-          className="space-y-4"
-        >
-
-          {/* Photo */}
-          <div className="flex items-center gap-4">
-
-            {photoPreview ? (
-
-              <img
-                src={photoPreview}
-                alt="Preview"
-                className="h-16 w-16 rounded-full object-cover ring-2 ring-blue-100"
-              />
-
-            ) : (
-
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 text-xs text-gray-400">
-                No photo
-              </div>
-
-            )}
-
-            <label className="cursor-pointer text-sm font-medium text-blue-600 hover:text-blue-700">
-
-              {photoPreview
-                ? 'Change photo'
-                : 'Upload photo'}
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
-                className="hidden"
-              />
-
-            </label>
-
-          </div>
-
-
-          {/* Name */}
-          <input
-            required
-            placeholder="Full name"
-            value={form.name}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                name: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Email */}
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                email: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Password */}
-          <input
-            required={!form._id}
-            type="password"
-            placeholder={
-              form._id
-                ? 'New password (leave blank to keep current)'
-                : 'Temporary password'
-            }
-            value={form.password}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                password: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Employee code */}
-          <input
-            required
-            placeholder="Employee code"
-            value={form.employeeCode}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                employeeCode: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Designation */}
-          <input
-            placeholder="Designation"
-            value={form.designation}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                designation: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Contact */}
-          <input
-            placeholder="Contact Number"
-            value={form.contactNumber}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                contactNumber: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          />
-
-
-          {/* Office */}
-          <div>
-
-            <select
-              value={form.officeId}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  officeId: e.target.value,
-                })
-              }
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            >
-
-              <option value="">
-                No office assigned
-              </option>
-
-              {offices.map((office) => (
-
-                <option
-                  key={office._id}
-                  value={office._id}
-                >
-                  {office.name}
-                </option>
-
-              ))}
-
-            </select>
-
-
-            <div className="mt-2 flex gap-2">
-
-              <input
-                placeholder="New office name (e.g. Kelax)"
-                value={newOfficeName}
-                onChange={(e) =>
-                  setNewOfficeName(e.target.value)
-                }
-                className="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              />
-
-              <Button
-                type="button"
-                variant="secondary"
-                loading={addingOffice}
-                onClick={handleAddOffice}
-              >
-                Add
-              </Button>
-
-            </div>
-
-          </div>
-
-
-          {/* Role */}
-          <select
-            value={form.role}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                role: e.target.value,
-              })
-            }
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          >
-
-            <option value="user">
-              Employee
-            </option>
-
-            <option value="admin">
-              Admin
-            </option>
-
-          </select>
-
-
-          {/* Error */}
-          {formError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
-              {formError}
-            </p>
-          )}
-
-
-          {/* Save */}
-          <Button
-            type="submit"
-            loading={submitting}
-            className="w-full"
-          >
-            Save
-          </Button>
-
-        </form>
-
-      </Modal>
 
     </div>
   );

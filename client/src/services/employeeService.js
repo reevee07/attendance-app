@@ -3,9 +3,12 @@ import api from './api';
 function buildFormData(payload, photoFile) {
   const formData = new FormData();
   Object.entries(payload).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      formData.append(key, value);
+    if (value === undefined || value === null) return;
+    if (typeof value === 'object') {
+      if (value._id) formData.append(key, value._id);
+      return;
     }
+    formData.append(key, value);
   });
   if (photoFile) formData.append('photo', photoFile);
   return formData;
@@ -13,6 +16,11 @@ function buildFormData(payload, photoFile) {
 
 export async function listEmployees(params = {}) {
   const { data } = await api.get('/employees', { params });
+  return data.data;
+}
+
+export async function getEmployee(id) {
+  const { data } = await api.get(`/employees/${id}`);
   return data.data;
 }
 
