@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/common/Button.jsx';
 import { LOGO_PNG, LOGIN_BG } from '../../config/constants.js';
@@ -7,6 +7,9 @@ import { LOGO_PNG, LOGIN_BG } from '../../config/constants.js';
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = location.state?.message;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
@@ -18,7 +21,11 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const user = await login(email, password);
-      navigate(user.role === 'admin' ? '/admin' : '/user');
+      if (user.mustChangePassword) {
+        navigate('/change-password', { replace: true });
+      } else {
+        navigate(user.role === 'admin' ? '/admin' : '/user', { replace: true });
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.');
     } finally {
@@ -36,6 +43,12 @@ export default function LoginPage() {
           <img src={LOGO_PNG} alt="Logo" className="h-9 w-auto object-contain" />
           <h1 className="mb-1 mt-1 text-xl font-bold text-blue-950">HRMS</h1>
         </div>
+
+        {successMessage && (
+          <p className="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {successMessage}
+          </p>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -1,30 +1,52 @@
-const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../config/env');
-const Employee = require('../modules/employee/employee.model');
+const jwt = require("jsonwebtoken");
+const { jwtSecret } = require("../config/env");
+const Employee = require("../modules/employee/employee.model");
 
 /**
  * Verifies JWT and attaches the authenticated employee to req.user
  */
 async function requireAuth(req, res, next) {
   try {
-    const authHeader = req.headers.authorization || '';
-    const token = authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+    const authHeader = req.headers.authorization || "";
+    const token = authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
 
     if (!token) {
-      return res.status(401).json({ success: false, message: 'Not authenticated' });
+      return res
+        .status(401)
+        .json({ success: false, message: "Not authenticated" });
     }
 
     const decoded = jwt.verify(token, jwtSecret);
-    const employee = await Employee.findById(decoded.id).select('-passwordHash');
+    const employee = await Employee.findById(decoded.id).select(
+      "-passwordHash",
+    );
 
-    if (!employee || employee.status !== 'active') {
-      return res.status(401).json({ success: false, message: 'Account not found or inactive' });
+    if (!employee || employee.status !== "active") {
+      return res
+        .status(401)
+        .json({ success: false, message: "Account not found or inactive" });
     }
-
+    // Force a password change: only these endpoints work until it's done
+    if (employee.mustChangePassword) {
+      const path = req.originalUrl.split("?")[0];
+      const allowed =
+        path.endsWith("/auth/change-password") || path.endsWith("/auth/me");
+      if (!allowed) {
+        return res.status(403).json({
+          success: false,
+          code: "PASSWORD_CHANGE_REQUIRED",
+          message: "You must change your password before continuing",
+        });
+      }
+    }
     req.user = employee;
     next();
   } catch (err) {
-    return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    return res
+      .status(401)
+      .json({ success: false, message: "Invalid or expired token" });
   }
 }
 
@@ -35,7 +57,12 @@ async function requireAuth(req, res, next) {
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ success: false, message: 'Forbidden - insufficient permissions' });
+      return res
+        .status(403)
+        .json({
+          success: false,
+          message: "Forbidden - insufficient permissions",
+        });
     }
     next();
   };
