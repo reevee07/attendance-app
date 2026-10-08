@@ -28,8 +28,8 @@ export default function AdminDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
+<div className=" min-h-screen bg-gray-50" style={{ zoom: 0.8 }}>    
+    {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-40 flex w-64 flex-col overflow-hidden bg-[#0D347D] px-3">
 
         {/* Decorative background */}
