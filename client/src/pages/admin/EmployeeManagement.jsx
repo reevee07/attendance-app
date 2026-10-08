@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AdminPunchModal from '../../components/admin/AdminPunchModal.jsx';
 import Loader from '../../components/common/Loader.jsx';
 
@@ -25,6 +25,14 @@ import {
 
 export default function EmployeeManagement() {
   const navigate = useNavigate();
+
+  const location = useLocation();
+  const [notice, setNotice] = useState(location.state?.notice || null);
+
+  useEffect(() => {
+    // Clear router state so a page refresh doesn't show the banner again
+    if (location.state?.notice) window.history.replaceState({}, document.title);
+  }, []);
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,6 +218,17 @@ export default function EmployeeManagement() {
 
       </div>
 
+      {notice && (
+        <div
+          className={`mb-4 flex items-start justify-between gap-4 rounded-xl px-4 py-3 text-sm ${notice.type === 'success'
+              ? 'bg-emerald-50 text-emerald-700'
+              : 'bg-orange-50 text-orange-700'
+            }`}
+        >
+          <span>{notice.text}</span>
+          <button type="button" onClick={() => setNotice(null)} className="font-bold">×</button>
+        </div>
+      )}
 
       {/* =====================================================
           KPI CARDS

@@ -18,8 +18,10 @@ async function sendEmail({ to, subject, htmlContent }) {
       subject,
       htmlContent,
     });
+    return true;
   } catch (err) {
     logger.error('Brevo email failed:', err.message);
+    return false;
   }
 }
 

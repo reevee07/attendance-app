@@ -1,7 +1,7 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const Employee = require('../employee/employee.model');
-const { jwtSecret, jwtExpiresIn } = require('../../config/env');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const Employee = require("../employee/employee.model");
+const { jwtSecret, jwtExpiresIn } = require("../../config/env");
 
 function generateToken(employee) {
   return jwt.sign({ id: employee._id, role: employee.role }, jwtSecret, {
@@ -10,13 +10,16 @@ function generateToken(employee) {
 }
 
 async function login(email, password) {
-  const employee = await Employee.findOne({ email: email.toLowerCase().trim() });
-  if (!employee) throw new Error('Invalid email or password');
+  const employee = await Employee.findOne({
+    email: email.toLowerCase().trim(),
+  });
+  if (!employee) throw new Error("Invalid email or password");
 
-  if (employee.status !== 'active') throw new Error('Account is inactive - contact your admin');
+  if (employee.status !== "active")
+    throw new Error("Account is inactive - contact your admin");
 
   const isMatch = await bcrypt.compare(password, employee.passwordHash);
-  if (!isMatch) throw new Error('Invalid email or password');
+  if (!isMatch) throw new Error("Invalid email or password");
 
   const token = generateToken(employee);
 
@@ -32,8 +35,31 @@ async function login(email, password) {
       designation: employee.designation,
       contactNumber: employee.contactNumber,
       employeeCode: employee.employeeCode,
+      mustChangePassword: employee.mustChangePassword === true,
     },
   };
 }
 
-module.exports = { login, generateToken };
+async function changePassword(employeeId, currentPassword, newPassword) {
+  if (!newPassword || newPassword.length < 8) {
+    throw new Error('New password must be at least 8 characters');
+  }
+  if (currentPassword === newPassword) {
+    throw new Error('New password must be different from the current one');
+  }
+
+  const employee = await Employee.findById(employeeId);
+  if (!employee) throw new Error('Employee not found');
+
+  const isMatch = await bcrypt.compare(currentPassword, employee.passwordHash);
+  if (!isMatch) throw new Error('Current password is incorrect');
+
+  employee.passwordHash = await bcrypt.hash(newPassword, 10);
+  employee.mustChangePassword = false;
+  await employee.save();
+}
+
+module.exports = { login, generateToken, changePassword };
+
+
+

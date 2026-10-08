@@ -19,4 +19,24 @@ const meController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: req.user });
 });
 
-module.exports = { loginController, meController };
+// PATCH /api/auth/change-password
+const changePasswordController = asyncHandler(async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    res.status(400);
+    throw new Error('Current and new password are required');
+  }
+
+  const employeeId = req.user._id || req.user.id;
+
+  res.status(400); // so service validation errors reach the client as 400
+  await authService.changePassword(employeeId, currentPassword, newPassword);
+
+  res.status(200).json({ success: true, message: 'Password updated' });
+});
+
+
+
+module.exports = { loginController, meController, changePasswordController };
+

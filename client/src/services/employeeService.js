@@ -29,7 +29,7 @@ export async function createEmployee(payload, photoFile) {
   const { data } = await api.post('/employees', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
-  return data.data;
+  return { employee: data.data, emailSent: data.emailSent };
 }
 
 export async function updateEmployee(id, payload, photoFile) {

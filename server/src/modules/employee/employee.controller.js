@@ -3,8 +3,8 @@ const employeeService = require('./employee.service');
 
 // POST /api/employees  (admin only)
 const createEmployeeController = asyncHandler(async (req, res) => {
-  const employee = await employeeService.createEmployee(req.body, req.file);
-  res.status(201).json({ success: true, data: employee });
+  const { employee, emailSent } = await employeeService.createEmployee(req.body, req.file);
+  res.status(201).json({ success: true, data: employee, emailSent });
 });
 
 // GET /api/employees  (admin only)
