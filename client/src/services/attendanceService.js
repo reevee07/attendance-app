@@ -45,3 +45,8 @@ export async function employeeCalendar(id, month) {
   const { data } = await api.get(`/attendance/employee/${id}/calendar`, { params: { month } });
   return data.data;
 }
+
+export async function myCalendar(month) {
+  const { data } = await api.get('/attendance/me/calendar', { params: { month } });
+  return data.data;
+}

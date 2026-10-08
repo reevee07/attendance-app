@@ -334,23 +334,23 @@ async function getMonthlyCalendar(employeeId, monthStr) {
     const holidayName = holidayByDate[key] || null;
 
     // Order: punch wins, then before-joining, holiday, weekly off, future, else absent
-       const beforeJoining = Boolean(joinKey && key < joinKey);
+    const beforeJoining = Boolean(joinKey && key < joinKey);
 
     // A punch wins, then holiday, then weekly off.
     // Working days before joining or in the future get no status.
     let status;
-    if (dayPunches.length) status = 'present';
-    else if (holidayName) status = 'holiday';
-    else if (WEEKLY_OFF_DAYS.includes(weekday)) status = 'weekly_off';
+    if (dayPunches.length) status = "present";
+    else if (holidayName) status = "holiday";
+    else if (WEEKLY_OFF_DAYS.includes(weekday)) status = "weekly_off";
     else if (beforeJoining || key > todayKey) status = null;
-    else status = 'absent';
+    else status = "absent";
 
     // Only days on or after joining count towards the totals
     if (!beforeJoining) {
-      if (status === 'present') summary.present += 1;
-      if (status === 'absent') summary.absent += 1;
-      if (status === 'weekly_off') summary.weeklyOff += 1;
-      if (status === 'holiday') summary.holiday += 1;
+      if (status === "present") summary.present += 1;
+      if (status === "absent") summary.absent += 1;
+      if (status === "weekly_off") summary.weeklyOff += 1;
+      if (status === "holiday") summary.holiday += 1;
     }
 
     const firstIn = dayPunches[0] || null;
@@ -366,6 +366,15 @@ async function getMonthlyCalendar(employeeId, monthStr) {
       status,
       holidayName,
       late,
+      workingMinutes:
+        firstIn && lastOut
+          ? Math.round(
+              (new Date(lastOut.timestamp) - new Date(firstIn.timestamp)) /
+                60000,
+            )
+          : null,
+      inAddress: firstIn?.address || null,
+      distanceFromOffice: firstIn?.distanceFromOffice ?? null,
       firstIn: firstIn ? firstIn.timestamp : null,
       lastOut: lastOut ? lastOut.timestamp : null,
       punchCount: dayPunches.length,
