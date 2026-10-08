@@ -78,6 +78,14 @@ const recentController = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, data: recent });
 });
 
+// GET /api/attendance/employee/:id/calendar?month=YYYY-MM  (admin only)
+const employeeCalendarController = asyncHandler(async (req, res) => {
+  res.status(400); // so validation errors from the service reach the client as 400
+  const data = await attendanceService.getMonthlyCalendar(req.params.id, req.query.month);
+  res.status(200).json({ success: true, data });
+});
+
+
 module.exports = {
   selfPunchController,
   adminPunchController,
@@ -87,4 +95,5 @@ module.exports = {
   trendController,
   byOfficeController,
   recentController,
+  employeeCalendarController,
 };

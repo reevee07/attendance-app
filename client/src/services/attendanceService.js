@@ -40,3 +40,8 @@ export async function recent(limit = 10) {
   const { data } = await api.get('/attendance/recent', { params: { limit } });
   return data.data;
 }
+
+export async function employeeCalendar(id, month) {
+  const { data } = await api.get(`/attendance/employee/${id}/calendar`, { params: { month } });
+  return data.data;
+}

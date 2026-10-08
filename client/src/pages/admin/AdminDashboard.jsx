@@ -10,6 +10,7 @@ import * as leaveService from '../../services/leaveService';
 import { LayoutDashboard, Clock, Users, CalendarCheck, Search, Bell, LogOut } from 'lucide-react';
 import EmployeeForm from './EmployeeForm.jsx';
 import EmployeeProfile from './EmployeeProfile.jsx';
+import EmployeeAttendanceCalendar from './EmployeeAttendanceCalendar.jsx';
 
 const sidebarLinkClass = ({ isActive }) =>
   `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${isActive ? 'bg-white text-blue-700 shadow-sm' : 'text-white/85 hover:bg-white/10'
@@ -184,7 +185,9 @@ export default function AdminDashboard() {
             <Route path="employees/:id" element={<EmployeeProfile />} />
             <Route path="employees/:id/edit" element={<EmployeeForm />} />
             <Route path="leave-allocation" element={<LeaveAllocation />} />
+            <Route path="attendance/:employeeId" element={<EmployeeAttendanceCalendar />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
+            
           </Routes>
         </main>
       </div>

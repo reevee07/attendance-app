@@ -203,11 +203,11 @@ function PunchGroup({
    ATTENDANCE TABLE
 ============================================================ */
 
-export default function AttendanceTable({ data }) {
+export default function AttendanceTable({ data, onRowClick, emptyMessage }) {
   if (!data || data.length === 0) {
     return (
       <p className="py-10 text-center text-sm text-gray-400">
-        No attendance recorded for this day
+        {emptyMessage || 'No attendance recorded for this day'}
       </p>
     );
   }
@@ -426,10 +426,17 @@ export default function AttendanceTable({ data }) {
             return (
               <div
                 key={row.employeeId}
+                role="button"
+                tabIndex={0}
+                onClick={() => onRowClick?.(row)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') onRowClick?.(row);
+                }}
                 className={`
                   ${ROW_GRID}
                   grid
                   w-full
+                  cursor-pointer
                   items-start
                   gap-2
                   rounded-2xl
@@ -438,6 +445,9 @@ export default function AttendanceTable({ data }) {
                   bg-white
                   p-3
                   shadow-sm
+                  transition
+                  hover:border-blue-300
+                  hover:shadow-md
                 `}
               >
 
@@ -559,7 +569,7 @@ export default function AttendanceTable({ data }) {
                             text-green-800
                           "
                         >
-                         
+
 
                           <span>
                             Self Punch
@@ -587,7 +597,7 @@ export default function AttendanceTable({ data }) {
                             text-red-700
                           "
                         >
-                          
+
 
                           <span>
                             Late

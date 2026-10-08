@@ -1,7 +1,8 @@
-const Attendance = require('./attendance.model');
-const Office = require('../office/office.model');
-const Employee = require('../employee/employee.model');
-const { distanceInMeters } = require('../../utils/geo');
+const Attendance = require("./attendance.model");
+const Office = require("../office/office.model");
+const Employee = require("../employee/employee.model");
+const { distanceInMeters } = require("../../utils/geo");
+const Holiday = require("../holiday/holiday.model");
 
 /**
  * Determines whether the next punch for this employee today should be
@@ -16,8 +17,8 @@ async function determineNextType(employeeId) {
     timestamp: { $gte: startOfDay },
   }).sort({ timestamp: -1 });
 
-  if (!lastPunchToday) return 'in';
-  return lastPunchToday.type === 'in' ? 'out' : 'in';
+  if (!lastPunchToday) return "in";
+  return lastPunchToday.type === "in" ? "out" : "in";
 }
 
 /**
@@ -25,17 +26,22 @@ async function determineNextType(employeeId) {
  */
 async function selfPunch({ employeeId, latitude, longitude }) {
   if (latitude === undefined || longitude === undefined) {
-    throw new Error('Location is required to punch attendance');
+    throw new Error("Location is required to punch attendance");
   }
 
   const employee = await Employee.findById(employeeId);
-  if (!employee) throw new Error('Employee not found');
+  if (!employee) throw new Error("Employee not found");
 
   let distanceFromOffice = null;
   if (employee.officeId) {
     const office = await Office.findById(employee.officeId);
     if (office) {
-      distanceFromOffice = distanceInMeters(latitude, longitude, office.latitude, office.longitude);
+      distanceFromOffice = distanceInMeters(
+        latitude,
+        longitude,
+        office.latitude,
+        office.longitude,
+      );
     }
   }
 
@@ -48,7 +54,7 @@ async function selfPunch({ employeeId, latitude, longitude }) {
     latitude,
     longitude,
     distanceFromOffice,
-    punchedBy: 'self',
+    punchedBy: "self",
   });
 
   return record;
@@ -59,7 +65,7 @@ async function selfPunch({ employeeId, latitude, longitude }) {
  */
 async function adminPunch({ employeeId, adminId, type, note }) {
   const employee = await Employee.findById(employeeId);
-  if (!employee) throw new Error('Employee not found');
+  if (!employee) throw new Error("Employee not found");
 
   const resolvedType = type || (await determineNextType(employeeId));
 
@@ -67,7 +73,7 @@ async function adminPunch({ employeeId, adminId, type, note }) {
     employeeId,
     type: resolvedType,
     timestamp: new Date(),
-    punchedBy: 'admin',
+    punchedBy: "admin",
     punchedByAdminId: adminId,
     note,
   });
@@ -107,48 +113,63 @@ async function getDailySummary(dateStr) {
       // so we can pull out the specific IN and OUT records afterward -
       // $first/$last alone can't filter by type, only by position.
       $group: {
-        _id: '$employeeId',
+        _id: "$employeeId",
         punches: {
-          $push: { type: '$type', timestamp: '$timestamp', latitude: '$latitude', longitude: '$longitude', address: '$address' },
+          $push: {
+            type: "$type",
+            timestamp: "$timestamp",
+            latitude: "$latitude",
+            longitude: "$longitude",
+            address: "$address",
+          },
         },
         totalPunches: { $sum: 1 },
-        hasAdminEntry: { $max: { $eq: ['$punchedBy', 'admin'] } },
+        hasAdminEntry: { $max: { $eq: ["$punchedBy", "admin"] } },
       },
     },
     {
       $addFields: {
         // First punch of the day is always 'in' by design (determineNextType),
         // so position 0 is safely the first-in punch.
-        firstInPunch: { $arrayElemAt: ['$punches', 0] },
+        firstInPunch: { $arrayElemAt: ["$punches", 0] },
         // Last 'out' punch specifically - filter to just 'out' punches, take the last one.
         lastOutPunch: {
-          $arrayElemAt: [{ $filter: { input: '$punches', as: 'p', cond: { $eq: ['$$p.type', 'out'] } } }, -1],
+          $arrayElemAt: [
+            {
+              $filter: {
+                input: "$punches",
+                as: "p",
+                cond: { $eq: ["$$p.type", "out"] },
+              },
+            },
+            -1,
+          ],
         },
       },
     },
     {
       $lookup: {
-        from: 'employees',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'employee',
+        from: "employees",
+        localField: "_id",
+        foreignField: "_id",
+        as: "employee",
       },
     },
-    { $unwind: '$employee' },
+    { $unwind: "$employee" },
     {
       $project: {
-        employeeId: '$_id',
-        name: '$employee.name',
-        email: '$employee.email',
-        employeeCode: '$employee.employeeCode',
-        firstIn: '$firstInPunch.timestamp',
-        inLatitude: '$firstInPunch.latitude',
-        inLongitude: '$firstInPunch.longitude',
-        inAddress: '$firstInPunch.address',
-        lastOut: '$lastOutPunch.timestamp',
-        outLatitude: '$lastOutPunch.latitude',
-        outLongitude: '$lastOutPunch.longitude',
-        outAddress: '$lastOutPunch.address',
+        employeeId: "$_id",
+        name: "$employee.name",
+        email: "$employee.email",
+        employeeCode: "$employee.employeeCode",
+        firstIn: "$firstInPunch.timestamp",
+        inLatitude: "$firstInPunch.latitude",
+        inLongitude: "$firstInPunch.longitude",
+        inAddress: "$firstInPunch.address",
+        lastOut: "$lastOutPunch.timestamp",
+        outLatitude: "$lastOutPunch.latitude",
+        outLongitude: "$lastOutPunch.longitude",
+        outAddress: "$lastOutPunch.address",
         totalPunches: 1,
         hasAdminEntry: 1,
         _id: 0,
@@ -176,14 +197,14 @@ async function getPresentTrend(days = 7) {
     {
       $group: {
         _id: {
-          date: { $dateToString: { format: '%Y-%m-%d', date: '$timestamp' } },
-          employeeId: '$employeeId',
+          date: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+          employeeId: "$employeeId",
         },
       },
     },
-    { $group: { _id: '$_id.date', count: { $sum: 1 } } },
+    { $group: { _id: "$_id.date", count: { $sum: 1 } } },
     { $sort: { _id: 1 } },
-    { $project: { date: '$_id', count: 1, _id: 0 } },
+    { $project: { date: "$_id", count: 1, _id: 0 } },
   ]);
 
   // Fill in any missing days with 0 so the graph doesn't have gaps
@@ -208,12 +229,14 @@ async function getOfficePresenceToday() {
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
 
-  const presentToday = await Attendance.distinct('employeeId', {
+  const presentToday = await Attendance.distinct("employeeId", {
     timestamp: { $gte: startOfDay, $lte: endOfDay },
   });
 
   const offices = await Office.find();
-  const employees = await Employee.find({ officeId: { $ne: null } }).select('officeId');
+  const employees = await Employee.find({ officeId: { $ne: null } }).select(
+    "officeId",
+  );
 
   const presentSet = new Set(presentToday.map((id) => id.toString()));
 
@@ -221,7 +244,9 @@ async function getOfficePresenceToday() {
     const officeEmployeeIds = employees
       .filter((e) => e.officeId?.toString() === office._id.toString())
       .map((e) => e._id.toString());
-    const presentCount = officeEmployeeIds.filter((id) => presentSet.has(id)).length;
+    const presentCount = officeEmployeeIds.filter((id) =>
+      presentSet.has(id),
+    ).length;
     return {
       officeId: office._id,
       officeName: office.name,
@@ -239,7 +264,116 @@ async function getRecentPunches(limit = 10) {
   return Attendance.find()
     .sort({ timestamp: -1 })
     .limit(limit)
-    .populate('employeeId', 'name');
+    .populate("employeeId", "name");
+}
+// ---- Monthly calendar ----
+const TZ = "Asia/Kolkata"; // keep in sync with the +05:30 offset below
+const WEEKLY_OFF_DAYS = [0, 6]; // Sunday and Saturday
+const LATE_AFTER_MINUTES = 10 * 60 + 10; // 10:10 AM is on time, 10:11 is late
+
+function isLate(ts) {
+  const [h, m] = new Date(ts)
+    .toLocaleTimeString("en-GB", {
+      timeZone: TZ,
+      hourCycle: "h23",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    .split(":")
+    .map(Number);
+  return h * 60 + m > LATE_AFTER_MINUTES;
+}
+const pad = (n) => String(n).padStart(2, "0");
+const dateKey = (d) =>
+  new Date(d).toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
+
+async function getMonthlyCalendar(employeeId, monthStr) {
+  const employee = await Employee.findById(employeeId).select("dateOfJoining");
+  if (!employee) throw new Error("Employee not found");
+
+  const todayKey = dateKey(new Date());
+  const [y, m] = monthStr
+    ? monthStr.split("-").map(Number)
+    : [Number(todayKey.slice(0, 4)), Number(todayKey.slice(5, 7))];
+  if (!y || !m || m < 1 || m > 12)
+    throw new Error("month must be in YYYY-MM format");
+
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const monthStart = `${y}-${pad(m)}-01`;
+  const monthEnd = `${y}-${pad(m)}-${pad(daysInMonth)}`;
+  const start = new Date(`${monthStart}T00:00:00+05:30`);
+  const end = new Date(`${monthEnd}T23:59:59.999+05:30`);
+
+  const [punches, holidayDocs] = await Promise.all([
+    Attendance.find({ employeeId, timestamp: { $gte: start, $lte: end } }).sort(
+      { timestamp: 1 },
+    ),
+    Holiday.find({ date: { $gte: monthStart, $lte: monthEnd } }),
+  ]);
+
+  const holidayByDate = Object.fromEntries(
+    holidayDocs.map((h) => [h.date, h.name]),
+  );
+
+  const byDay = {};
+  for (const p of punches) {
+    const key = dateKey(p.timestamp);
+    (byDay[key] = byDay[key] || []).push(p);
+  }
+
+  const joinKey = employee.dateOfJoining
+    ? dateKey(employee.dateOfJoining)
+    : null;
+  const summary = { present: 0, absent: 0, weeklyOff: 0, holiday: 0, late: 0 };
+  const days = [];
+
+  for (let d = 1; d <= daysInMonth; d += 1) {
+    const key = `${y}-${pad(m)}-${pad(d)}`;
+    const dayPunches = byDay[key] || [];
+    const weekday = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const holidayName = holidayByDate[key] || null;
+
+    // Order: punch wins, then before-joining, holiday, weekly off, future, else absent
+       const beforeJoining = Boolean(joinKey && key < joinKey);
+
+    // A punch wins, then holiday, then weekly off.
+    // Working days before joining or in the future get no status.
+    let status;
+    if (dayPunches.length) status = 'present';
+    else if (holidayName) status = 'holiday';
+    else if (WEEKLY_OFF_DAYS.includes(weekday)) status = 'weekly_off';
+    else if (beforeJoining || key > todayKey) status = null;
+    else status = 'absent';
+
+    // Only days on or after joining count towards the totals
+    if (!beforeJoining) {
+      if (status === 'present') summary.present += 1;
+      if (status === 'absent') summary.absent += 1;
+      if (status === 'weekly_off') summary.weeklyOff += 1;
+      if (status === 'holiday') summary.holiday += 1;
+    }
+
+    const firstIn = dayPunches[0] || null;
+    const lastOut =
+      [...dayPunches].reverse().find((p) => p.type === "out") || null;
+    const late =
+      status === "present" && firstIn ? isLate(firstIn.timestamp) : false;
+    if (late) summary.late += 1;
+
+    days.push({
+      date: key,
+      weekday,
+      status,
+      holidayName,
+      late,
+      firstIn: firstIn ? firstIn.timestamp : null,
+      lastOut: lastOut ? lastOut.timestamp : null,
+      punchCount: dayPunches.length,
+      byAdmin: dayPunches.some((p) => p.punchedBy === "admin"),
+    });
+  }
+
+  return { month: `${y}-${pad(m)}`, daysInMonth, summary, days };
 }
 
 module.exports = {
@@ -251,4 +385,5 @@ module.exports = {
   getPresentTrend,
   getOfficePresenceToday,
   getRecentPunches,
+  getMonthlyCalendar,
 };
