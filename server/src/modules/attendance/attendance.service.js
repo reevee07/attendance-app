@@ -21,6 +21,24 @@ async function determineNextType(employeeId) {
   return lastPunchToday.type === "in" ? "out" : "in";
 }
 
+// Looks up a street address from coordinates. Never throws: returns null on any failure.
+async function reverseGeocode(latitude, longitude) {
+  try {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'HRMS-Attendance/1.0 (ravi4kelax@gmail.com)' },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.display_name || null;
+  } catch {
+    return null;
+  }
+}
+
+
 /**
  * Self-punch: employee punches their own attendance with geolocation.
  */
