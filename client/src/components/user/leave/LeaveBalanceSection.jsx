@@ -4,7 +4,7 @@ import LeaveBalanceCard from './LeaveBalanceCard.jsx';
 import Loader from '../../common/Loader.jsx';
 import { computeTotalLeaveBalance } from '../../../utils/leaveBalanceCalc';
 
-export default function LeaveBalanceSection({ balance, leaveHistoryCount = 0 }) {
+export default function LeaveBalanceSection({ balance, leaveHistoryCount = 0, onHistoryClick }) {
   if (!balance) return <Loader />;
 
   const total = computeTotalLeaveBalance(balance);
@@ -71,6 +71,7 @@ export default function LeaveBalanceSection({ balance, leaveHistoryCount = 0 }) 
       value: leaveHistoryCount,
       tint: 'bg-pink-200',
       iconColor: 'text-pink-600',
+      onClick: onHistoryClick,
     },
   ];
 

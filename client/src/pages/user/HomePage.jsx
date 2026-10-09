@@ -80,16 +80,17 @@ export default function HomePage() {
   );
 
 
-  const isCheckedIn = !!today?.firstIn && !today?.lastOut;
+  // Checked in = the last punch of the day was an IN (works for any number of rounds)
+  const isCheckedIn = today?.lastType === 'in';
   const hasCheckedInToday = !!today?.firstIn;
 
-
-  const hoursMinutes = today?.firstIn
-    ? today.lastOut
-      ? today.durationMinutes
-      : Math.round((now - new Date(today.firstIn)) / 60000)
+  // Closed rounds + the round still running (live)
+  const hoursMinutes = today
+    ? (today.workedMinutes || 0) +
+    (today.openSince
+      ? Math.max(0, Math.round((now - new Date(today.openSince)) / 60000))
+      : 0)
     : 0;
-
 
   const hoursPercent = Math.min(
     Math.round((hoursMinutes / 480) * 100),

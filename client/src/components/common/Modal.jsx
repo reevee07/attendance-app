@@ -6,21 +6,18 @@ export default function Modal({ open, onClose, title, children }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-80 max-w-md rounded-xl bg-blue-100 shadow-xl">
-        <div className="flex items-center justify-between border-b px-5 py-4">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-xl bg-white shadow-xl">
+        <div className="flex shrink-0 items-center justify-between border-b px-5 py-4">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           <button
-            
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
             aria-label="Close"
-            
           >
             ✕
-          </button> 
-          
+          </button>
         </div>
-        <div className="px-5 py-4">{children} </div>
+        <div className="overflow-y-auto px-5 py-4">{children}</div>
       </div>
     </div>
   );

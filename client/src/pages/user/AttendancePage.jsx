@@ -33,8 +33,8 @@ const shortDate = (key) => {
 const formatTime = (ts) =>
   ts
     ? new Date(ts).toLocaleTimeString('en-IN', {
-        hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ,
-      })
+      hour: '2-digit', minute: '2-digit', hour12: true, timeZone: TZ,
+    })
     : null;
 
 const formatMinutes = (min) => {
@@ -52,10 +52,10 @@ const STATUS_STYLES = {
 
 // Calendar looks: day circle + status pill
 const CAL_STATUS = {
-  present:    { label: 'Present',    circle: 'bg-emerald-100 text-emerald-800 border-emerald-500', pill: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
-  absent:     { label: 'Absent',     circle: 'bg-red-100 text-red-700 border-red-500',             pill: 'bg-red-100 text-red-700',         dot: 'bg-red-500' },
-  weekly_off: { label: 'Weekly off', circle: 'bg-slate-100 text-slate-500 border-slate-400',       pill: 'bg-slate-200 text-slate-600',     dot: 'bg-slate-400' },
-  holiday:    { label: 'Holiday',    circle: 'bg-amber-100 text-amber-800 border-amber-500',       pill: 'bg-amber-100 text-amber-800',     dot: 'bg-amber-500' },
+  present: { label: 'Present', circle: 'bg-emerald-100 text-emerald-800 border-emerald-500', pill: 'bg-emerald-100 text-emerald-800', dot: 'bg-emerald-500' },
+  absent: { label: 'Absent', circle: 'bg-red-100 text-red-700 border-red-500', pill: 'bg-red-100 text-red-700', dot: 'bg-red-500' },
+  weekly_off: { label: 'Weekly off', circle: 'bg-slate-100 text-slate-500 border-slate-400', pill: 'bg-slate-200 text-slate-600', dot: 'bg-slate-400' },
+  holiday: { label: 'Holiday', circle: 'bg-amber-100 text-amber-800 border-amber-500', pill: 'bg-amber-100 text-amber-800', dot: 'bg-amber-500' },
 };
 
 function Stat({ label, value, tone }) {
@@ -69,9 +69,9 @@ function Stat({ label, value, tone }) {
 
 function InfoBox({ label, value }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2">
+    <div className="rounded-full border border-gray-200 bg-gray-50 px-3 py-2">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-bold text-gray-900">{value || '—'}</p>
+      <p className="mt-0.5 truncate text-sm font-bold text-gray-900">{value || ''}</p>
     </div>
   );
 }
@@ -86,38 +86,45 @@ function SelectedDayCard({ day }) {
     location = `${Math.round(day.distanceFromOffice)} m from office`;
   }
 
+
   return (
     <div className="mt-4 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-lg font-bold text-gray-500">{shortDate(day.date)}</p>
-          
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-lg font-bold text-gray-500">
+          {shortDate(day.date)}
+        </p>
+
+        <div className="flex items-center gap-2">
+          {day.late && (
+            <span className="rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700 whitespace-nowrap">
+              Late arrival
+            </span>
+          )}
+
+          {s ? (
+            <span className={`rounded-full px-3 py-1 text-xs font-bold whitespace-nowrap ${s.pill}`}>
+              {s.label}
+            </span>
+          ) : (
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-500 whitespace-nowrap">
+              No status yet
+            </span>
+          )}
         </div>
-        {s ? (
-          <span className={`rounded-full px-3 py-1 text-xs font-bold ${s.pill}`}>{s.label}</span>
-        ) : (
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-bold text-gray-500">
-            No status yet
-          </span>
-        )}
       </div>
 
       {day.holidayName && (
-        <p className="mt-2 text-sm font-semibold text-amber-700">{day.holidayName}</p>
+        <p className="mt-2 text-sm font-semibold text-amber-700">
+          {day.holidayName}
+        </p>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-2 grid grid-cols-2 gap-1">
         <InfoBox label="In time" value={formatTime(day.firstIn)} />
         <InfoBox label="Out time" value={formatTime(day.lastOut)} />
         <InfoBox label="Working hours" value={formatMinutes(day.workingMinutes)} />
         <InfoBox label="Location" value={location} />
       </div>
-
-      {day.late && (
-        <span className="mt-3 inline-block rounded-full bg-orange-100 px-3 py-1 text-xs font-bold text-orange-700">
-          Late arrival
-        </span>
-      )}
     </div>
   );
 }
@@ -169,54 +176,49 @@ export default function AttendancePage() {
       {/* ================= CALENDAR ================= */}
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-100 text-blue-600">
             <CalendarCheck size={22} />
           </span>
           <div>
             <h1 className="text-lg font-bold leading-tight text-blue-950">Attendance Calendar</h1>
-            <p className="text-xs text-gray-500">Your monthly attendance overview</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => goToMonth(currentMonth())}
-          className="rounded-xl border border-blue-100 bg-white px-3 py-2 text-xs font-bold text-blue-950 shadow-sm"
-        >
-          Today
-        </button>
+       
       </div>
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-xl font-bold text-blue-950">{monthTitle(month)}</h2>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => goToMonth(shiftMonth(month, -1))}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-700 shadow-sm"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            onClick={() => goToMonth(shiftMonth(month, 1))}
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-100 bg-white text-blue-700 shadow-sm"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
-      </div>
+
 
       {calError && (
         <p className="mb-3 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{calError}</p>
       )}
 
       {summary && (
-        <div className="mb-3 grid grid-cols-3 gap-2">
-          <Stat label="Present" value={summary.present} tone="bg-emerald-50 text-emerald-700" />
-          <Stat label="Absent" value={summary.absent} tone="bg-red-50 text-red-600" />
-          <Stat label="Late" value={summary.late ?? 0} tone="bg-orange-50 text-orange-600" />
+        <div className="mb-3 grid grid-cols-3 gap-1">
+          <Stat label="Present" value={summary.present} tone="bg-emerald-100 text-emerald-700" />
+          <Stat label="Absent" value={summary.absent} tone="bg-red-100 text-red-600" />
+          <Stat label="Late" value={summary.late ?? 0} tone="bg-orange-100 text-orange-600" />
         </div>
       )}
+
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-xl font-bold bg-blue-100 rounded-full p-1 px-14 text-blue-950">{monthTitle(month)}</h2>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => goToMonth(shiftMonth(month, -1))}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-white text-blue-700 shadow-sm"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => goToMonth(shiftMonth(month, 1))}
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-white text-blue-700 shadow-sm"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
 
       <div className="rounded-3xl border border-blue-100 bg-white p-3 shadow-sm">
         {calLoading && !calendar ? (
@@ -243,11 +245,9 @@ export default function AttendancePage() {
                     className="flex flex-col items-center gap-0.5 focus:outline-none"
                   >
                     <span
-                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition ${
-                        s ? s.circle : 'border-transparent bg-gray-100 text-blue-950'
-                      } ${isSelected ? 'ring-2 ring-blue-600 ring-offset-2' : ''} ${
-                        isToday && !isSelected ? 'ring-2 ring-blue-300 ring-offset-1' : ''
-                      }`}
+                      className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-bold transition ${s ? s.circle : 'border-transparent bg-gray-100 text-blue-950'
+                        } ${isSelected ? 'ring-4 ring-green-600 ring-offset-2' : ''} ${isToday && !isSelected ? 'ring-2 ring-green-300 ring-offset-1' : ''
+                        }`}
                     >
                       {Number(day.date.slice(8))}
                     </span>
@@ -283,36 +283,6 @@ export default function AttendancePage() {
         </p>
       )}
 
-      {/* ================= HISTORY (unchanged) ================= */}
-      <h2 className="mb-3 mt-8 text-lg font-bold text-gray-900">Attendance History</h2>
-
-      {loading ? (
-        <Loader />
-      ) : days.length === 0 ? (
-        <p className="py-10 text-center text-sm text-gray-400">No attendance recorded yet</p>
-      ) : (
-        <div className="space-y-2">
-          {days.map((day) => (
-            <div
-              key={day.dateKey}
-              className="flex items-center justify-between rounded-3xl border border-gray-200 bg-white p-4 shadow-sm"
-            >
-              <div>
-                <p className="text-sm font-semibold text-gray-900">{formatDayLabel(day.date)}</p>
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {day.firstIn ? new Date(day.firstIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                  {' – '}
-                  {day.lastOut ? new Date(day.lastOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
-                </p>
-                <p className="mt-0.5 text-xs text-gray-400">{formatDuration(day.durationMinutes)}</p>
-              </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[day.status]}`}>
-                {day.status}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

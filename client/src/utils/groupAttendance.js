@@ -1,8 +1,14 @@
-
 /**
  * Groups a flat list of punches (as returned by attendanceService.myHistory())
- * into one entry per calendar day, with that day's first-in, last-out,
- * a formatted duration, and a status label. Input can be in any order.
+ * into one entry per calendar day. Input can be in any order.
+ *
+ * Per day it returns:
+ *  - firstIn / lastOut: first IN and last OUT of the day
+ *  - lastType: type of the last punch ('in' = currently checked in)
+ *  - workedMinutes: total of every closed IN -> OUT round
+ *  - openSince: start of a round that has not been closed yet (else null)
+ *  - durationMinutes: workedMinutes, or null when no round has been closed
+ *  - status: 'Present' | 'In Progress' | 'No Punch'
  */
 export function groupPunchesByDay(punches) {
   const byDay = new Map();
@@ -12,29 +18,55 @@ export function groupPunchesByDay(punches) {
     const dayKey = day.toISOString().slice(0, 10);
 
     if (!byDay.has(dayKey)) {
-      byDay.set(dayKey, { dateKey: dayKey, date: day, firstIn: null, lastOut: null });
+      byDay.set(dayKey, { dateKey: dayKey, date: day, punches: [] });
     }
-    const entry = byDay.get(dayKey);
-
-    if (punch.type === 'in') {
-      if (!entry.firstIn || new Date(punch.timestamp) < new Date(entry.firstIn)) {
-        entry.firstIn = punch.timestamp;
-      }
-    } else if (punch.type === 'out') {
-      if (!entry.lastOut || new Date(punch.timestamp) > new Date(entry.lastOut)) {
-        entry.lastOut = punch.timestamp;
-      }
-    }
+    byDay.get(dayKey).punches.push(punch);
   }
 
   return Array.from(byDay.values())
-    .map((entry) => ({
-      ...entry,
-      durationMinutes: entry.firstIn && entry.lastOut
-        ? Math.round((new Date(entry.lastOut) - new Date(entry.firstIn)) / 60000)
-        : null,
-      status: entry.firstIn ? (entry.lastOut ? 'Present' : 'In Progress') : 'No Punch',
-    }))
+    .map(({ dateKey, date, punches: dayPunches }) => {
+      const sorted = [...dayPunches].sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      let firstIn = null;
+      let lastOut = null;
+      let openSince = null;
+      let workedMs = 0;
+      let closedRounds = 0;
+
+      for (const p of sorted) {
+        if (p.type === 'in') {
+          if (!firstIn) firstIn = p.timestamp;
+          if (!openSince) openSince = p.timestamp;
+        } else if (p.type === 'out') {
+          lastOut = p.timestamp;
+          if (openSince) {
+            workedMs += new Date(p.timestamp) - new Date(openSince);
+            closedRounds += 1;
+            openSince = null;
+          }
+        }
+      }
+
+      const lastType = sorted.length ? sorted[sorted.length - 1].type : null;
+      const workedMinutes = Math.round(workedMs / 60000);
+
+      let status = 'No Punch';
+      if (firstIn) status = lastType === 'in' ? 'In Progress' : 'Present';
+
+      return {
+        dateKey,
+        date,
+        firstIn,
+        lastOut,
+        lastType,
+        openSince,
+        workedMinutes,
+        durationMinutes: closedRounds > 0 ? workedMinutes : null,
+        status,
+      };
+    })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
