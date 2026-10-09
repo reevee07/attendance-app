@@ -154,7 +154,7 @@ export default function HomePage() {
             )}
 
             <div className="min-w-0">
-              
+
 
               {/* Employee Name */}
               <h1 className="mt-1 font-medium text-2xl text-white/90">
@@ -166,7 +166,7 @@ export default function HomePage() {
                 {user.designation}
               </p>
 
-          
+
             </div>
 
           </div>
@@ -418,8 +418,8 @@ export default function HomePage() {
             STEP 4 — TODAY'S HOURS
         ======================================================= */}
 
-      
-        
+
+
         <div className="relative overflow-hidden rounded-3xl border border-white/90 bg-white/95 p-4 shadow-[0_12px_35px_rgba(30,64,175,0.08)] backdrop-blur-xl">
 
 
@@ -652,9 +652,7 @@ export default function HomePage() {
           <Button
             onClick={punch.handleSubmit}
             loading={punch.submitting}
-            disabled={!punch.location}
-            className="w-full"
-          >
+            disabled={!punch.canPunch}          >
             Confirm Punch
           </Button>
 

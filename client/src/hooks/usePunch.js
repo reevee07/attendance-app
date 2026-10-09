@@ -1,13 +1,11 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useGeolocation } from './useGeolocation';
 import * as attendanceService from '../services/attendanceService';
 
 /**
- * All the shared logic behind a "punch" action: opening a confirm modal,
- * fetching geolocation, reverse-geocoding it to an address, and submitting.
- * Used by any button that should trigger a punch (quick-action circle,
- * the big Punch In/Out card button, etc.) so the logic lives in one place.
+ * Shared logic behind a "punch" action: open a confirm modal, get geolocation,
+ * reverse-geocode it to an address, and submit.
+ * A punch is only allowed when BOTH coordinates and an address are available.
  */
 export function usePunch(onPunchSuccess) {
   const [open, setOpen] = useState(false);
@@ -15,14 +13,18 @@ export function usePunch(onPunchSuccess) {
   const [error, setError] = useState(null);
   const [address, setAddress] = useState(null);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [addressFailed, setAddressFailed] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { location, loading: locLoading, error: locError, getLocation } = useGeolocation();
 
   useEffect(() => {
     if (!location) {
       setAddress(null);
+      setAddressFailed(false);
       return;
     }
     setAddressLoading(true);
+    setAddressFailed(false);
     setAddress(null);
 
     const controller = new AbortController();
@@ -30,13 +32,23 @@ export function usePunch(onPunchSuccess) {
       `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${location.latitude}&lon=${location.longitude}`,
       { signal: controller.signal }
     )
-      .then((res) => res.json())
-      .then((data) => setAddress(data.display_name || null))
-      .catch(() => setAddress(null))
+      .then((res) => {
+        if (!res.ok) throw new Error('lookup failed');
+        return res.json();
+      })
+      .then((data) => {
+        if (data.display_name) setAddress(data.display_name);
+        else setAddressFailed(true);
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') setAddressFailed(true);
+      })
       .finally(() => setAddressLoading(false));
 
     return () => controller.abort();
-  }, [location]);
+  }, [location, retryCount]);
+
+  const retryAddress = useCallback(() => setRetryCount((n) => n + 1), []);
 
   function openModal() {
     setOpen(true);
@@ -48,9 +60,20 @@ export function usePunch(onPunchSuccess) {
     setOpen(false);
   }
 
+  // Both location and address are required
+  const canPunch = !!location && !!address && !addressLoading;
+
   async function handleSubmit() {
     if (!location) {
       setError('Location is required. Please allow location access and try again.');
+      return;
+    }
+    if (!address) {
+      setError(
+        addressLoading
+          ? 'Still finding your address. Please wait a moment.'
+          : 'Address could not be found. Tap Retry and try again.'
+      );
       return;
     }
     setSubmitting(true);
@@ -82,5 +105,8 @@ export function usePunch(onPunchSuccess) {
     locError,
     address,
     addressLoading,
+    addressFailed,
+    retryAddress,
+    canPunch,
   };
 }

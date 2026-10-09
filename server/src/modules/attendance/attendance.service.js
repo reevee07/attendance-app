@@ -24,9 +24,20 @@ async function determineNextType(employeeId) {
 /**
  * Self-punch: employee punches their own attendance with geolocation.
  */
-async function selfPunch({ employeeId, latitude, longitude }) {
-  if (latitude === undefined || longitude === undefined) {
-    throw new Error("Location is required to punch attendance");
+async function selfPunch({ employeeId, latitude, longitude, address }) {
+  // Coordinates are mandatory and must be real numbers within range
+  if (
+    !Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+    latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180
+  ) {
+    throw new Error("Valid location is required to punch attendance");
+  }
+
+  // Address is mandatory. Use the one the app sent, otherwise look it up here.
+  let finalAddress = address && address.trim() ? address.trim() : null;
+  if (!finalAddress) finalAddress = await reverseGeocode(latitude, longitude);
+  if (!finalAddress) {
+    throw new Error("Could not determine your address. Please try again.");
   }
 
   const employee = await Employee.findById(employeeId);
@@ -53,13 +64,13 @@ async function selfPunch({ employeeId, latitude, longitude }) {
     timestamp: new Date(),
     latitude,
     longitude,
+    address: finalAddress,
     distanceFromOffice,
     punchedBy: "self",
   });
 
   return record;
 }
-
 /**
  * Admin-punch: admin punches on behalf of any employee. No geolocation, no photo.
  */
